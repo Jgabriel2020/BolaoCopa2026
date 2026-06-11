@@ -498,22 +498,19 @@ async function handleLogin(e) {
   const username = $('f-user').value.trim()
   const password = $('f-pass').value
 
-  // Busca o email pelo username direto da tabela profiles
-  const { data: profile, error: profileErr } = await sb
-    .from('profiles')
-    .select('id, email')
-    .eq('username', username)
-    .maybeSingle()
+  // Verifica username + senha via RPC (retorna o email se correto)
+  const { data: emailResult, error: rpcErr } = await sb
+    .rpc('verify_login', { p_username: username, p_password: padPass(password) })
 
-  if (profileErr || !profile || !profile.email) {
-    err.textContent = 'Usuário não encontrado.'
+  if (rpcErr || !emailResult) {
+    err.textContent = 'Usuário ou senha incorretos.'
     err.classList.remove('hidden')
     btn.disabled = false; btn.textContent = 'Entrar'
     return
   }
 
   const { data, error } = await sb.auth.signInWithPassword({
-    email: profile.email,
+    email: emailResult,
     password: padPass(password),
   })
 
