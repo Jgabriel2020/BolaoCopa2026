@@ -1,0 +1,1053 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bolão Copa do Mundo 2026 ⚽</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" />
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            night: '#080f1a',
+            navy: '#0d1b2e',
+            card: '#111e33',
+            border: '#1e3050',
+            gold: '#f5a623',
+            'gold-dark': '#c4821a',
+          },
+          fontFamily: { sans: ['Inter','sans-serif'] }
+        }
+      }
+    }
+  </script>
+  <style>
+    *{box-sizing:border-box}
+    body{background:#080f1a;color:#f1f5f9;font-family:'Inter',sans-serif}
+    .flag{font-size:1.5rem;line-height:1}
+    .tab-active{border-bottom:2px solid #f5a623;color:#f5a623}
+    .score-inp{width:3.2rem;text-align:center;-moz-appearance:textfield}
+    .score-inp::-webkit-inner-spin-button,.score-inp::-webkit-outer-spin-button{-webkit-appearance:none}
+    .spin{border:3px solid rgba(245,166,35,.2);border-top-color:#f5a623;border-radius:50%;width:2rem;height:2rem;animation:spin .8s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .dot{background:#22c55e;border-radius:50%;width:8px;height:8px;animation:pulse 1.5s ease infinite}
+    @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.8)}}
+    .toast-in{animation:slideIn .3s ease}
+    @keyframes slideIn{from{transform:translateY(100%);opacity:0}to{transform:translateY(0);opacity:1}}
+    .badge-3{background:linear-gradient(135deg,#f5a623,#c4821a)}
+    .badge-1{background:linear-gradient(135deg,#3b82f6,#1d4ed8)}
+    .badge-0{background:linear-gradient(135deg,#374151,#1f2937)}
+    ::-webkit-scrollbar{width:5px;height:5px}
+    ::-webkit-scrollbar-track{background:#0d1b2e}
+    ::-webkit-scrollbar-thumb{background:#1e3050;border-radius:3px}
+    ::-webkit-scrollbar-thumb:hover{background:#f5a623}
+    .match-card{transition:transform .15s ease}
+    .match-card:hover{transform:translateY(-1px)}
+    .glow{box-shadow:0 0 20px rgba(245,166,35,.3)}
+  </style>
+</head>
+<body>
+
+<!-- Toast -->
+<div id="toasts" class="fixed bottom-6 right-6 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+<!-- App -->
+<div id="app" class="flex items-center justify-center min-h-screen">
+  <div class="spin"></div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+//  CONFIGURAÇÃO SUPABASE
+//  Substitua pela URL e chave do seu projeto em supabase.com
+// ═══════════════════════════════════════════════════════════════
+const SUPABASE_URL     = 'https://SEU_PROJETO.supabase.co'
+const SUPABASE_ANON_KEY = 'SUA_ANON_KEY_AQUI'
+
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: { persistSession: true, autoRefreshToken: true }
+})
+
+// ═══════════════════════════════════════════════════════════════
+//  DADOS DOS TIMES
+// ═══════════════════════════════════════════════════════════════
+const TEAMS = {
+  MEX:{name:'México',          flag:'🇲🇽',group:'A'},
+  RSA:{name:'África do Sul',   flag:'🇿🇦',group:'A'},
+  KOR:{name:'Coreia do Sul',   flag:'🇰🇷',group:'A'},
+  CZE:{name:'Tchéquia',        flag:'🇨🇿',group:'A'},
+  CAN:{name:'Canadá',          flag:'🇨🇦',group:'B'},
+  BIH:{name:'Bósnia-Herz.',    flag:'🇧🇦',group:'B'},
+  QAT:{name:'Qatar',           flag:'🇶🇦',group:'B'},
+  SUI:{name:'Suíça',           flag:'🇨🇭',group:'B'},
+  BRA:{name:'Brasil',          flag:'🇧🇷',group:'C'},
+  MAR:{name:'Marrocos',        flag:'🇲🇦',group:'C'},
+  HAI:{name:'Haiti',           flag:'🇭🇹',group:'C'},
+  SCO:{name:'Escócia',         flag:'🏴󠁧󠁢󠁳󠁣󠁴󠁿',group:'C'},
+  USA:{name:'EUA',             flag:'🇺🇸',group:'D'},
+  PAR:{name:'Paraguai',        flag:'🇵🇾',group:'D'},
+  AUS:{name:'Austrália',       flag:'🇦🇺',group:'D'},
+  TUR:{name:'Turquia',         flag:'🇹🇷',group:'D'},
+  GER:{name:'Alemanha',        flag:'🇩🇪',group:'E'},
+  CUW:{name:'Curaçao',         flag:'🇨🇼',group:'E'},
+  CIV:{name:'Costa do Marfim', flag:'🇨🇮',group:'E'},
+  ECU:{name:'Equador',         flag:'🇪🇨',group:'E'},
+  NED:{name:'Holanda',         flag:'🇳🇱',group:'F'},
+  JPN:{name:'Japão',           flag:'🇯🇵',group:'F'},
+  SWE:{name:'Suécia',          flag:'🇸🇪',group:'F'},
+  TUN:{name:'Tunísia',         flag:'🇹🇳',group:'F'},
+  BEL:{name:'Bélgica',         flag:'🇧🇪',group:'G'},
+  EGY:{name:'Egito',           flag:'🇪🇬',group:'G'},
+  IRN:{name:'Irã',             flag:'🇮🇷',group:'G'},
+  NZL:{name:'Nova Zelândia',   flag:'🇳🇿',group:'G'},
+  ESP:{name:'Espanha',         flag:'🇪🇸',group:'H'},
+  CPV:{name:'Cabo Verde',      flag:'🇨🇻',group:'H'},
+  KSA:{name:'Arábia Saudita',  flag:'🇸🇦',group:'H'},
+  URU:{name:'Uruguai',         flag:'🇺🇾',group:'H'},
+  FRA:{name:'França',          flag:'🇫🇷',group:'I'},
+  IRQ:{name:'Iraque',          flag:'🇮🇶',group:'I'},
+  NOR:{name:'Noruega',         flag:'🇳🇴',group:'I'},
+  SEN:{name:'Senegal',         flag:'🇸🇳',group:'I'},
+  ARG:{name:'Argentina',       flag:'🇦🇷',group:'J'},
+  ALG:{name:'Argélia',         flag:'🇩🇿',group:'J'},
+  AUT:{name:'Áustria',         flag:'🇦🇹',group:'J'},
+  JOR:{name:'Jordânia',        flag:'🇯🇴',group:'J'},
+  POR:{name:'Portugal',        flag:'🇵🇹',group:'K'},
+  COD:{name:'Congo RD',        flag:'🇨🇩',group:'K'},
+  UZB:{name:'Uzbequistão',     flag:'🇺🇿',group:'K'},
+  COL:{name:'Colômbia',        flag:'🇨🇴',group:'K'},
+  ENG:{name:'Inglaterra',      flag:'🏴󠁧󠁢󠁥󠁮󠁧󠁿',group:'L'},
+  CRO:{name:'Croácia',         flag:'🇭🇷',group:'L'},
+  GHA:{name:'Gana',            flag:'🇬🇭',group:'L'},
+  PAN:{name:'Panamá',          flag:'🇵🇦',group:'L'},
+}
+
+const GROUPS = ['A','B','C','D','E','F','G','H','I','J','K','L']
+
+// ═══════════════════════════════════════════════════════════════
+//  DADOS DOS JOGOS (72 partidas - fase de grupos)
+//  match_datetime em UTC (BRT = UTC−3)
+// ═══════════════════════════════════════════════════════════════
+const MATCHES = [
+  // RODADA 1
+  {id:1, group:'A',round:1,home:'MEX',away:'RSA',dt:'2026-06-11T19:00Z',venue:'Cidade do México'},
+  {id:2, group:'A',round:1,home:'KOR',away:'CZE',dt:'2026-06-12T02:00Z',venue:'Zapopan'},
+  {id:3, group:'B',round:1,home:'CAN',away:'BIH',dt:'2026-06-12T19:00Z',venue:'Toronto'},
+  {id:4, group:'D',round:1,home:'USA',away:'PAR',dt:'2026-06-13T01:00Z',venue:'Inglewood'},
+  {id:5, group:'B',round:1,home:'QAT',away:'SUI',dt:'2026-06-13T19:00Z',venue:'Santa Clara'},
+  {id:6, group:'C',round:1,home:'BRA',away:'MAR',dt:'2026-06-13T22:00Z',venue:'East Rutherford'},
+  {id:7, group:'C',round:1,home:'HAI',away:'SCO',dt:'2026-06-14T01:00Z',venue:'Foxborough'},
+  {id:8, group:'D',round:1,home:'AUS',away:'TUR',dt:'2026-06-14T04:00Z',venue:'Vancouver'},
+  {id:9, group:'E',round:1,home:'GER',away:'CUW',dt:'2026-06-14T17:00Z',venue:'Houston'},
+  {id:10,group:'E',round:1,home:'CIV',away:'ECU',dt:'2026-06-14T23:00Z',venue:'Philadelphia'},
+  {id:11,group:'F',round:1,home:'NED',away:'JPN',dt:'2026-06-15T20:00Z',venue:'Arlington'},
+  {id:12,group:'F',round:1,home:'SWE',away:'TUN',dt:'2026-06-15T02:00Z',venue:'Monterrey'},
+  {id:13,group:'H',round:1,home:'ESP',away:'CPV',dt:'2026-06-15T17:00Z',venue:'Atlanta'},
+  {id:14,group:'G',round:1,home:'BEL',away:'EGY',dt:'2026-06-15T22:00Z',venue:'Seattle'},
+  {id:15,group:'H',round:1,home:'KSA',away:'URU',dt:'2026-06-15T22:00Z',venue:'Miami Gardens'},
+  {id:16,group:'G',round:1,home:'IRN',away:'NZL',dt:'2026-06-16T04:00Z',venue:'Inglewood'},
+  {id:17,group:'I',round:1,home:'FRA',away:'SEN',dt:'2026-06-16T19:00Z',venue:'East Rutherford'},
+  {id:18,group:'I',round:1,home:'IRQ',away:'NOR',dt:'2026-06-16T22:00Z',venue:'Foxborough'},
+  {id:19,group:'J',round:1,home:'ARG',away:'ALG',dt:'2026-06-17T01:00Z',venue:'Kansas City'},
+  {id:20,group:'J',round:1,home:'AUT',away:'JOR',dt:'2026-06-17T04:00Z',venue:'Santa Clara'},
+  {id:21,group:'K',round:1,home:'POR',away:'COD',dt:'2026-06-17T17:00Z',venue:'Houston'},
+  {id:22,group:'L',round:1,home:'ENG',away:'CRO',dt:'2026-06-17T20:00Z',venue:'Arlington'},
+  {id:23,group:'L',round:1,home:'GHA',away:'PAN',dt:'2026-06-17T23:00Z',venue:'Toronto'},
+  {id:24,group:'K',round:1,home:'UZB',away:'COL',dt:'2026-06-18T02:00Z',venue:'Cidade do México'},
+  // RODADA 2
+  {id:25,group:'A',round:2,home:'CZE',away:'RSA',dt:'2026-06-18T16:00Z',venue:'Atlanta'},
+  {id:26,group:'B',round:2,home:'SUI',away:'BIH',dt:'2026-06-18T19:00Z',venue:'Inglewood'},
+  {id:27,group:'B',round:2,home:'CAN',away:'QAT',dt:'2026-06-18T22:00Z',venue:'Vancouver'},
+  {id:28,group:'A',round:2,home:'MEX',away:'KOR',dt:'2026-06-19T01:00Z',venue:'Zapopan'},
+  {id:29,group:'D',round:2,home:'USA',away:'AUS',dt:'2026-06-19T19:00Z',venue:'Seattle'},
+  {id:30,group:'C',round:2,home:'SCO',away:'MAR',dt:'2026-06-19T22:00Z',venue:'Foxborough'},
+  {id:31,group:'C',round:2,home:'BRA',away:'HAI',dt:'2026-06-20T01:00Z',venue:'Philadelphia'},
+  {id:32,group:'D',round:2,home:'TUR',away:'PAR',dt:'2026-06-20T04:00Z',venue:'Santa Clara'},
+  {id:33,group:'F',round:2,home:'NED',away:'SWE',dt:'2026-06-20T17:00Z',venue:'Houston'},
+  {id:34,group:'E',round:2,home:'GER',away:'CIV',dt:'2026-06-20T20:00Z',venue:'Toronto'},
+  {id:35,group:'E',round:2,home:'ECU',away:'CUW',dt:'2026-06-21T00:00Z',venue:'Kansas City'},
+  {id:36,group:'F',round:2,home:'TUN',away:'JPN',dt:'2026-06-21T04:00Z',venue:'Monterrey'},
+  {id:37,group:'H',round:2,home:'ESP',away:'KSA',dt:'2026-06-21T16:00Z',venue:'Atlanta'},
+  {id:38,group:'G',round:2,home:'BEL',away:'IRN',dt:'2026-06-21T19:00Z',venue:'Inglewood'},
+  {id:39,group:'H',round:2,home:'URU',away:'CPV',dt:'2026-06-21T22:00Z',venue:'Miami Gardens'},
+  {id:40,group:'G',round:2,home:'NZL',away:'EGY',dt:'2026-06-22T01:00Z',venue:'Vancouver'},
+  {id:41,group:'J',round:2,home:'ARG',away:'AUT',dt:'2026-06-22T17:00Z',venue:'Arlington'},
+  {id:42,group:'I',round:2,home:'FRA',away:'IRQ',dt:'2026-06-22T21:00Z',venue:'Philadelphia'},
+  {id:43,group:'I',round:2,home:'NOR',away:'SEN',dt:'2026-06-23T00:00Z',venue:'East Rutherford'},
+  {id:44,group:'J',round:2,home:'JOR',away:'ALG',dt:'2026-06-23T03:00Z',venue:'Santa Clara'},
+  {id:45,group:'K',round:2,home:'POR',away:'UZB',dt:'2026-06-23T17:00Z',venue:'Houston'},
+  {id:46,group:'L',round:2,home:'ENG',away:'GHA',dt:'2026-06-23T20:00Z',venue:'Foxborough'},
+  {id:47,group:'L',round:2,home:'PAN',away:'CRO',dt:'2026-06-23T23:00Z',venue:'Toronto'},
+  {id:48,group:'K',round:2,home:'COL',away:'COD',dt:'2026-06-24T02:00Z',venue:'Zapopan'},
+  // RODADA 3 (simultâneos)
+  {id:49,group:'A',round:3,home:'MEX',away:'CZE',dt:'2026-06-24T16:00Z',venue:'Kansas City'},
+  {id:50,group:'A',round:3,home:'RSA',away:'KOR',dt:'2026-06-24T16:00Z',venue:'Houston'},
+  {id:51,group:'B',round:3,home:'SUI',away:'CAN',dt:'2026-06-24T19:00Z',venue:'Vancouver'},
+  {id:52,group:'B',round:3,home:'BIH',away:'QAT',dt:'2026-06-24T19:00Z',venue:'Seattle'},
+  {id:53,group:'C',round:3,home:'SCO',away:'BRA',dt:'2026-06-24T22:00Z',venue:'Miami Gardens'},
+  {id:54,group:'C',round:3,home:'MAR',away:'HAI',dt:'2026-06-24T22:00Z',venue:'Atlanta'},
+  {id:55,group:'D',round:3,home:'TUR',away:'USA',dt:'2026-06-25T20:00Z',venue:'Inglewood'},
+  {id:56,group:'D',round:3,home:'PAR',away:'AUS',dt:'2026-06-25T20:00Z',venue:'Santa Clara'},
+  {id:57,group:'E',round:3,home:'ECU',away:'GER',dt:'2026-06-25T20:00Z',venue:'East Rutherford'},
+  {id:58,group:'E',round:3,home:'CUW',away:'CIV',dt:'2026-06-25T20:00Z',venue:'Philadelphia'},
+  {id:59,group:'F',round:3,home:'JPN',away:'SWE',dt:'2026-06-25T23:00Z',venue:'Arlington'},
+  {id:60,group:'F',round:3,home:'TUN',away:'NED',dt:'2026-06-25T23:00Z',venue:'Kansas City'},
+  {id:61,group:'I',round:3,home:'NOR',away:'FRA',dt:'2026-06-26T19:00Z',venue:'Foxborough'},
+  {id:62,group:'I',round:3,home:'SEN',away:'IRQ',dt:'2026-06-26T19:00Z',venue:'Toronto'},
+  {id:63,group:'H',round:3,home:'CPV',away:'KSA',dt:'2026-06-27T00:00Z',venue:'Houston'},
+  {id:64,group:'H',round:3,home:'URU',away:'ESP',dt:'2026-06-27T00:00Z',venue:'Zapopan'},
+  {id:65,group:'G',round:3,home:'EGY',away:'IRN',dt:'2026-06-27T03:00Z',venue:'Seattle'},
+  {id:66,group:'G',round:3,home:'NZL',away:'BEL',dt:'2026-06-27T03:00Z',venue:'Vancouver'},
+  {id:67,group:'L',round:3,home:'PAN',away:'ENG',dt:'2026-06-27T21:00Z',venue:'East Rutherford'},
+  {id:68,group:'L',round:3,home:'CRO',away:'GHA',dt:'2026-06-27T21:00Z',venue:'Philadelphia'},
+  {id:69,group:'K',round:3,home:'COL',away:'POR',dt:'2026-06-27T23:30Z',venue:'Miami Gardens'},
+  {id:70,group:'K',round:3,home:'COD',away:'UZB',dt:'2026-06-27T23:30Z',venue:'Atlanta'},
+  {id:71,group:'J',round:3,home:'JOR',away:'ARG',dt:'2026-06-28T02:00Z',venue:'Arlington'},
+  {id:72,group:'J',round:3,home:'ALG',away:'AUT',dt:'2026-06-28T02:00Z',venue:'Kansas City'},
+]
+
+// ═══════════════════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════════════════
+let STATE = {
+  user: null,
+  profile: null,
+  page: null,
+  predictions: {},
+  dashView: 'rodada',   // 'rodada' | 'grupo'
+  dashFilter: 1,        // 1|2|3 or 'A'..'L'
+  realtimeSubs: [],
+  dbMatches: {},        // match results from DB
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  UTILS
+// ═══════════════════════════════════════════════════════════════
+const $ = id => document.getElementById(id)
+const APP = () => $('app')
+
+function isLocked(match) {
+  return new Date() >= new Date(match.dt)
+}
+
+function fmtTime(iso) {
+  return new Date(iso).toLocaleString('pt-BR', {
+    timeZone:'America/Sao_Paulo', hour:'2-digit', minute:'2-digit'
+  })
+}
+
+function fmtDay(iso) {
+  return new Date(iso).toLocaleString('pt-BR', {
+    timeZone:'America/Sao_Paulo',
+    weekday:'long', day:'2-digit', month:'long'
+  })
+}
+
+function fmtFull(iso) {
+  return new Date(iso).toLocaleString('pt-BR', {
+    timeZone:'America/Sao_Paulo',
+    weekday:'short', day:'2-digit', month:'2-digit',
+    hour:'2-digit', minute:'2-digit'
+  })
+}
+
+function outcome(h, a) {
+  return h > a ? 1 : h < a ? -1 : 0
+}
+
+function calcPoints(predH, predA, realH, realA) {
+  if (predH === realH && predA === realA) return 3
+  if (outcome(predH, predA) === outcome(realH, realA)) return 1
+  return 0
+}
+
+function groupColor(g) {
+  const map = {
+    A:'bg-red-900 text-red-300', B:'bg-orange-900 text-orange-300',
+    C:'bg-yellow-900 text-yellow-300', D:'bg-green-900 text-green-300',
+    E:'bg-teal-900 text-teal-300', F:'bg-cyan-900 text-cyan-300',
+    G:'bg-blue-900 text-blue-300', H:'bg-indigo-900 text-indigo-300',
+    I:'bg-violet-900 text-violet-300', J:'bg-purple-900 text-purple-300',
+    K:'bg-pink-900 text-pink-300', L:'bg-rose-900 text-rose-300',
+  }
+  return map[g] || 'bg-slate-800 text-slate-400'
+}
+
+function toast(msg, type='info') {
+  const colors = {success:'bg-green-700 border-green-500', error:'bg-red-700 border-red-500',
+                  info:'bg-blue-700 border-blue-500', warning:'bg-yellow-600 border-yellow-400'}
+  const icons  = {success:'✓', error:'✕', info:'ℹ', warning:'⚠'}
+  const el = document.createElement('div')
+  el.className = `toast-in flex items-center gap-3 px-4 py-3 rounded-xl border text-white text-sm font-medium shadow-2xl pointer-events-auto ${colors[type]}`
+  el.innerHTML = `<span class="text-lg font-bold">${icons[type]}</span><span>${msg}</span>`
+  $('toasts').appendChild(el)
+  setTimeout(() => { el.style.cssText='opacity:0;transition:opacity .3s'; setTimeout(()=>el.remove(),300) }, 3500)
+}
+
+function spin() { return '<div class="spin mx-auto"></div>' }
+
+function removeChannels() {
+  STATE.realtimeSubs.forEach(ch => sb.removeChannel(ch))
+  STATE.realtimeSubs = []
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  ROUTER
+// ═══════════════════════════════════════════════════════════════
+async function go(page) {
+  removeChannels()
+  STATE.page = page
+  APP().innerHTML = `<div class="flex items-center justify-center min-h-screen">${spin()}</div>`
+
+  if (page === 'login' || page === 'register') {
+    APP().innerHTML = pageAuth(page)
+    bindAuth(page)
+    return
+  }
+
+  // Require auth
+  if (!STATE.user) {
+    const { data: { user } } = await sb.auth.getUser()
+    if (!user) { go('login'); return }
+    STATE.user = user
+  }
+
+  if (!STATE.profile) await loadProfile()
+
+  const isAdmin = STATE.profile?.is_admin || false
+  const uname = STATE.profile?.username || STATE.user.email?.split('@')[0] || 'Usuário'
+
+  let body = ''
+  if (page === 'dashboard') {
+    await loadUserPredictions()
+    await loadDbMatches()
+    body = pageDashboard()
+  } else if (page === 'ranking') {
+    body = `<div id="rank-wrap" class="max-w-3xl mx-auto px-4 py-6">${spin()}</div>`
+  } else if (page === 'mypicks') {
+    body = await pageMyPicks()
+  } else if (page === 'admin') {
+    body = await pageAdmin()
+  }
+
+  APP().innerHTML = header(page, uname, isAdmin) + `<main>${body}</main>`
+  bindHeader()
+
+  if (page === 'dashboard') bindDashboard()
+  if (page === 'ranking')   loadRanking()
+  if (page === 'admin')     bindAdmin()
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  DATA LOADERS
+// ═══════════════════════════════════════════════════════════════
+async function loadProfile() {
+  const { data } = await sb.from('profiles')
+    .select('username,total_points,is_admin')
+    .eq('id', STATE.user.id).single()
+  STATE.profile = data
+}
+
+async function loadUserPredictions() {
+  const { data } = await sb.from('predictions').select('*').eq('user_id', STATE.user.id)
+  STATE.predictions = {}
+  if (data) data.forEach(p => { STATE.predictions[p.match_id] = p })
+}
+
+async function loadDbMatches() {
+  const { data } = await sb.from('matches').select('id,home_score,away_score,status')
+  STATE.dbMatches = {}
+  if (data) data.forEach(m => { STATE.dbMatches[m.id] = m })
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  HEADER
+// ═══════════════════════════════════════════════════════════════
+function header(active, uname, isAdmin) {
+  const nav = [
+    {id:'dashboard', label:'Jogos', icon:'⚽'},
+    {id:'mypicks',   label:'Palpites', icon:'🎯'},
+    {id:'ranking',   label:'Ranking', icon:'🏆'},
+    ...(isAdmin ? [{id:'admin', label:'Admin', icon:'⚙️'}] : []),
+  ]
+  const items = nav.map(n => `
+    <button onclick="go('${n.id}')"
+      class="flex flex-col items-center gap-0.5 px-3 py-2 rounded-xl text-xs font-semibold transition-colors
+        ${active===n.id ? 'text-gold' : 'text-slate-500 hover:text-slate-300'}">
+      <span class="text-lg">${n.icon}</span>
+      <span class="hidden sm:block">${n.label}</span>
+    </button>`).join('')
+
+  return `
+  <header class="sticky top-0 z-40 bg-navy/90 backdrop-blur-lg border-b border-border">
+    <div class="max-w-3xl mx-auto px-4 h-14 flex items-center justify-between">
+      <div class="flex items-center gap-2 cursor-pointer" onclick="go('dashboard')">
+        <span class="text-xl">⚽</span>
+        <span class="font-black text-white text-sm sm:text-base">Bolão <span class="text-gold">2026</span></span>
+      </div>
+      <nav class="flex items-center gap-1">${items}</nav>
+      <div class="flex items-center gap-2">
+        <span class="hidden sm:block text-xs font-semibold text-white">${uname}</span>
+        <button onclick="logout()" class="text-xs text-slate-500 hover:text-red-400 transition-colors px-2 py-1 rounded hover:bg-red-900/20">Sair</button>
+      </div>
+    </div>
+  </header>`
+}
+
+function bindHeader() {
+  window.go = go
+  window.logout = async () => { await sb.auth.signOut(); STATE.user=null; STATE.profile=null; go('login') }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  AUTH PAGE
+// ═══════════════════════════════════════════════════════════════
+function pageAuth(mode) {
+  const loginForm = `
+    <form id="auth-form" class="flex flex-col gap-4">
+      <div>
+        <label class="text-xs font-bold text-slate-400 uppercase tracking-wide mb-1.5 block">E-mail</label>
+        <input id="f-email" type="email" required placeholder="seu@email.com" autocomplete="email"
+          class="w-full bg-navy border border-border rounded-xl px-4 py-2.5 text-white text-sm placeholder-slate-600
+                 focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold transition-colors"/>
+      </div>
+      <div>
+        <label class="text-xs font-bold text-slate-400 uppercase tracking-wide mb-1.5 block">Senha</label>
+        <input id="f-pass" type="password" required placeholder="••••••••" autocomplete="current-password"
+          class="w-full bg-navy border border-border rounded-xl px-4 py-2.5 text-white text-sm placeholder-slate-600
+                 focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold transition-colors"/>
+      </div>
+      <button type="submit" id="auth-btn"
+        class="mt-1 bg-gold hover:bg-gold-dark text-night font-bold py-2.5 rounded-xl transition-colors text-sm">
+        Entrar
+      </button>
+      <p id="auth-err" class="text-red-400 text-xs text-center hidden"></p>
+    </form>`
+
+  const regForm = `
+    <form id="auth-form" class="flex flex-col gap-4">
+      <div>
+        <label class="text-xs font-bold text-slate-400 uppercase tracking-wide mb-1.5 block">Nome de usuário</label>
+        <input id="f-user" type="text" required placeholder="seu_nick" maxlength="20" autocomplete="username"
+          class="w-full bg-navy border border-border rounded-xl px-4 py-2.5 text-white text-sm placeholder-slate-600
+                 focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold transition-colors"/>
+      </div>
+      <div>
+        <label class="text-xs font-bold text-slate-400 uppercase tracking-wide mb-1.5 block">E-mail</label>
+        <input id="f-email" type="email" required placeholder="seu@email.com" autocomplete="email"
+          class="w-full bg-navy border border-border rounded-xl px-4 py-2.5 text-white text-sm placeholder-slate-600
+                 focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold transition-colors"/>
+      </div>
+      <div>
+        <label class="text-xs font-bold text-slate-400 uppercase tracking-wide mb-1.5 block">Senha</label>
+        <input id="f-pass" type="password" required placeholder="Mínimo 6 caracteres" minlength="6" autocomplete="new-password"
+          class="w-full bg-navy border border-border rounded-xl px-4 py-2.5 text-white text-sm placeholder-slate-600
+                 focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold transition-colors"/>
+      </div>
+      <button type="submit" id="auth-btn"
+        class="mt-1 bg-gold hover:bg-gold-dark text-night font-bold py-2.5 rounded-xl transition-colors text-sm">
+        Criar conta
+      </button>
+      <p id="auth-err" class="text-red-400 text-xs text-center hidden"></p>
+    </form>`
+
+  return `
+  <div class="min-h-screen flex flex-col items-center justify-center px-4 py-12">
+    <div class="text-center mb-8">
+      <div class="text-6xl mb-3">⚽</div>
+      <h1 class="text-3xl font-black text-white tracking-tight">Bolão Copa <span class="text-gold">2026</span></h1>
+      <p class="text-slate-400 mt-2 text-sm">Faça seus palpites e dispute o ranking!</p>
+    </div>
+    <div class="w-full max-w-sm bg-card border border-border rounded-2xl p-7 shadow-2xl">
+      <div class="flex border-b border-border mb-6">
+        <button onclick="go('login')"
+          class="flex-1 pb-3 text-sm font-semibold transition-colors ${mode==='login'?'tab-active':'text-slate-400 hover:text-white'}">
+          Entrar
+        </button>
+        <button onclick="go('register')"
+          class="flex-1 pb-3 text-sm font-semibold transition-colors ${mode==='register'?'tab-active':'text-slate-400 hover:text-white'}">
+          Cadastrar
+        </button>
+      </div>
+      ${mode==='login' ? loginForm : regForm}
+    </div>
+    <p class="text-slate-600 text-xs mt-6">Copa do Mundo FIFA 2026 · EUA, México e Canadá</p>
+  </div>`
+}
+
+function bindAuth(mode) {
+  window.go = go
+  $('auth-form')?.addEventListener('submit', mode==='login' ? handleLogin : handleRegister)
+}
+
+async function handleLogin(e) {
+  e.preventDefault()
+  const btn = $('auth-btn'), err = $('auth-err')
+  btn.disabled = true; btn.textContent = 'Entrando...'
+  err.classList.add('hidden')
+
+  const { data, error } = await sb.auth.signInWithPassword({
+    email: $('f-email').value.trim(),
+    password: $('f-pass').value
+  })
+
+  if (error) {
+    err.textContent = error.message.includes('Invalid') ? 'E-mail ou senha incorretos.' : error.message
+    err.classList.remove('hidden')
+    btn.disabled = false; btn.textContent = 'Entrar'
+  } else {
+    STATE.user = data.user
+    toast('Bem-vindo! ⚽', 'success')
+    go('dashboard')
+  }
+}
+
+async function handleRegister(e) {
+  e.preventDefault()
+  const btn = $('auth-btn'), err = $('auth-err')
+  const username = $('f-user').value.trim()
+  const email    = $('f-email').value.trim()
+  const pass     = $('f-pass').value
+
+  if (!/^[a-zA-Z0-9_]{3,20}$/.test(username)) {
+    err.textContent = 'Nome de usuário: 3-20 caracteres (letras, números, _)'
+    err.classList.remove('hidden'); return
+  }
+
+  btn.disabled = true; btn.textContent = 'Cadastrando...'
+  err.classList.add('hidden')
+
+  // Check username
+  const { data: ex } = await sb.from('profiles').select('id').eq('username', username).maybeSingle()
+  if (ex) {
+    err.textContent = 'Nome de usuário já em uso.'
+    err.classList.remove('hidden')
+    btn.disabled = false; btn.textContent = 'Criar conta'; return
+  }
+
+  const { data, error } = await sb.auth.signUp({ email, password: pass })
+  if (error) {
+    err.textContent = error.message
+    err.classList.remove('hidden')
+    btn.disabled = false; btn.textContent = 'Criar conta'; return
+  }
+
+  if (data.user) {
+    await sb.from('profiles').upsert({ id: data.user.id, username, total_points: 0 })
+    STATE.user = data.user
+    STATE.profile = { username, total_points: 0, is_admin: false }
+  }
+  toast('Conta criada! Bem-vindo! 🎉', 'success')
+  go('dashboard')
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  DASHBOARD (Jogos + Palpites)
+// ═══════════════════════════════════════════════════════════════
+function pageDashboard() {
+  return `
+  <div class="max-w-3xl mx-auto px-4 py-6">
+    <!-- Toggle -->
+    <div class="flex gap-2 mb-5 bg-card border border-border rounded-xl p-1">
+      <button id="btn-rodada" onclick="setView('rodada')"
+        class="flex-1 py-2 text-sm font-semibold rounded-lg transition-all ${STATE.dashView==='rodada'?'bg-gold text-night':'text-slate-400 hover:text-white'}">
+        Por Rodada
+      </button>
+      <button id="btn-grupo" onclick="setView('grupo')"
+        class="flex-1 py-2 text-sm font-semibold rounded-lg transition-all ${STATE.dashView==='grupo'?'bg-gold text-night':'text-slate-400 hover:text-white'}">
+        Por Grupo
+      </button>
+    </div>
+    <!-- Pills -->
+    <div id="pills" class="flex gap-2 overflow-x-auto pb-2 mb-5 no-scrollbar">${buildPills()}</div>
+    <!-- Matches -->
+    <div id="match-list">${buildMatchList()}</div>
+  </div>`
+}
+
+function buildPills() {
+  if (STATE.dashView === 'rodada') {
+    return [1,2,3].map(r => `
+      <button onclick="setFilter(${r})"
+        class="flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-semibold border transition-all
+          ${STATE.dashFilter===r?'bg-gold border-gold text-night':'border-border text-slate-400 hover:border-gold hover:text-gold'}">
+        Rodada ${r}
+      </button>`).join('')
+  }
+  return GROUPS.map(g => `
+    <button onclick="setFilter('${g}')"
+      class="flex-shrink-0 w-9 h-9 rounded-full text-sm font-bold border transition-all
+        ${STATE.dashFilter===g?'bg-gold border-gold text-night':'border-border text-slate-400 hover:border-gold hover:text-gold'}">
+      ${g}
+    </button>`).join('')
+}
+
+function buildMatchList() {
+  let matches = STATE.dashView === 'rodada'
+    ? MATCHES.filter(m => m.round === STATE.dashFilter).sort((a,b) => new Date(a.dt)-new Date(b.dt))
+    : MATCHES.filter(m => m.group === STATE.dashFilter).sort((a,b) => a.round-b.round || new Date(a.dt)-new Date(b.dt))
+
+  if (!matches.length) return '<p class="text-slate-500 text-center py-8">Nenhum jogo encontrado.</p>'
+
+  // Group by day
+  const byDay = {}
+  matches.forEach(m => {
+    const d = fmtDay(m.dt)
+    if (!byDay[d]) byDay[d] = []
+    byDay[d].push(m)
+  })
+
+  return Object.entries(byDay).map(([day, list]) => `
+    <div class="mb-6">
+      <h3 class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3 px-1 capitalize">${day}</h3>
+      <div class="flex flex-col gap-3">${list.map(m => buildCard(m)).join('')}</div>
+    </div>`).join('')
+}
+
+function buildCard(match) {
+  const dbM   = STATE.dbMatches[match.id] || {}
+  const pred  = STATE.predictions[match.id]
+  const home  = TEAMS[match.home]
+  const away  = TEAMS[match.away]
+  const locked = isLocked(match)
+  const hasResult = dbM.home_score != null && dbM.away_score != null
+
+  // Status badge
+  let statusBadge = ''
+  if (hasResult) {
+    statusBadge = '<span class="text-xs bg-green-900 text-green-400 font-bold px-2 py-0.5 rounded-full">Encerrado</span>'
+  } else if (locked) {
+    statusBadge = '<div class="flex items-center gap-1.5"><div class="dot"></div><span class="text-xs font-bold text-green-400">Ao vivo</span></div>'
+  }
+
+  // Points badge
+  let ptsBadge = ''
+  if (pred && hasResult) {
+    const pts = calcPoints(pred.home_score, pred.away_score, dbM.home_score, dbM.away_score)
+    ptsBadge = pts===3
+      ? '<span class="badge-3 text-white text-xs font-black px-2.5 py-0.5 rounded-full">🎯 +3</span>'
+      : pts===1
+      ? '<span class="badge-1 text-white text-xs font-black px-2.5 py-0.5 rounded-full">✓ +1</span>'
+      : '<span class="badge-0 text-white text-xs font-black px-2.5 py-0.5 rounded-full">✕ 0</span>'
+  }
+
+  // Center content
+  let center = ''
+  if (hasResult) {
+    center = `
+      <div class="flex items-center gap-2">
+        <span class="text-3xl font-black text-white w-8 text-center">${dbM.home_score}</span>
+        <span class="text-slate-500 font-bold">×</span>
+        <span class="text-3xl font-black text-white w-8 text-center">${dbM.away_score}</span>
+      </div>
+      ${pred ? `<div class="text-xs text-slate-500 mt-1">Seu palpite: ${pred.home_score}×${pred.away_score}</div>` : ''}`
+  } else if (pred) {
+    center = `
+      <div class="flex items-center gap-2">
+        <span class="text-2xl font-black text-gold w-8 text-center">${pred.home_score}</span>
+        <span class="text-slate-500 font-bold">×</span>
+        <span class="text-2xl font-black text-gold w-8 text-center">${pred.away_score}</span>
+      </div>
+      <div class="text-xs ${locked?'text-yellow-500':'text-green-400'} mt-1 font-semibold">${locked?'🔒 Bloqueado':'✓ Salvo'}</div>`
+  } else if (locked) {
+    center = `<div class="text-2xl font-black text-slate-600">— × —</div><div class="text-xs text-slate-600 mt-1">Bloqueado</div>`
+  } else {
+    center = `
+      <div class="flex items-center gap-2">
+        <input type="number" min="0" max="99" id="h${match.id}" placeholder="0"
+          class="score-inp bg-navy border border-border rounded-lg px-2 py-1.5 text-xl font-black text-white
+                 focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold"/>
+        <span class="text-slate-500 font-bold">×</span>
+        <input type="number" min="0" max="99" id="a${match.id}" placeholder="0"
+          class="score-inp bg-navy border border-border rounded-lg px-2 py-1.5 text-xl font-black text-white
+                 focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold"/>
+      </div>
+      <button onclick="savePred(${match.id})"
+        class="mt-1.5 text-xs font-bold bg-gold hover:bg-gold-dark text-night px-4 py-1.5 rounded-full transition-colors">
+        Salvar palpite
+      </button>`
+  }
+
+  return `
+  <div class="match-card bg-card border border-border rounded-2xl overflow-hidden hover:border-slate-600">
+    <div class="flex items-center justify-between px-4 pt-3 pb-2 border-b border-border">
+      <div class="flex items-center gap-2">
+        <span class="text-xs font-bold px-1.5 py-0.5 rounded ${groupColor(match.group)}">GRP ${match.group}</span>
+        <span class="text-slate-500 text-xs">R${match.round}</span>
+      </div>
+      <div class="flex items-center gap-2">
+        ${statusBadge || `<span class="text-xs text-slate-500">⏰ ${fmtTime(match.dt)} BRT</span>`}
+        ${ptsBadge}
+      </div>
+    </div>
+    <div class="px-4 py-4 flex items-center gap-3">
+      <div class="flex-1 flex flex-col items-center gap-1.5">
+        <span class="text-3xl">${home.flag}</span>
+        <span class="text-xs font-semibold text-center text-white leading-tight">${home.name}</span>
+      </div>
+      <div class="flex-shrink-0 flex flex-col items-center gap-1 min-w-[140px]">${center}</div>
+      <div class="flex-1 flex flex-col items-center gap-1.5">
+        <span class="text-3xl">${away.flag}</span>
+        <span class="text-xs font-semibold text-center text-white leading-tight">${away.name}</span>
+      </div>
+    </div>
+  </div>`
+}
+
+function bindDashboard() {
+  window.setView = (v) => {
+    STATE.dashView = v
+    STATE.dashFilter = v==='rodada' ? 1 : 'A'
+    $('btn-rodada').className = `flex-1 py-2 text-sm font-semibold rounded-lg transition-all ${v==='rodada'?'bg-gold text-night':'text-slate-400 hover:text-white'}`
+    $('btn-grupo').className  = `flex-1 py-2 text-sm font-semibold rounded-lg transition-all ${v==='grupo'?'bg-gold text-night':'text-slate-400 hover:text-white'}`
+    $('pills').innerHTML = buildPills()
+    $('match-list').innerHTML = buildMatchList()
+    bindInputs()
+  }
+
+  window.setFilter = (f) => {
+    STATE.dashFilter = f
+    $('pills').innerHTML = buildPills()
+    $('match-list').innerHTML = buildMatchList()
+    bindInputs()
+  }
+
+  window.savePred = async (matchId) => {
+    const match = MATCHES.find(m => m.id === matchId)
+    if (!match || isLocked(match)) { toast('Jogo bloqueado!', 'warning'); return }
+    if (STATE.predictions[matchId]) { toast('Palpite já registrado!', 'warning'); return }
+
+    const hEl = $(`h${matchId}`), aEl = $(`a${matchId}`)
+    if (!hEl || !aEl) return
+
+    const hv = parseInt(hEl.value), av = parseInt(aEl.value)
+    if (isNaN(hv) || isNaN(av) || hv < 0 || av < 0) { toast('Preencha os dois placares!', 'error'); return }
+
+    const { error } = await sb.from('predictions').insert({
+      user_id: STATE.user.id, match_id: matchId, home_score: hv, away_score: av
+    })
+
+    if (error) {
+      toast(error.code==='23505' ? 'Palpite já registrado!' : 'Erro: ' + error.message, 'error')
+      return
+    }
+    STATE.predictions[matchId] = { match_id: matchId, home_score: hv, away_score: av, points: null }
+    toast('Palpite salvo! 🎯', 'success')
+    $('match-list').innerHTML = buildMatchList()
+    bindInputs()
+  }
+
+  // Realtime: match results
+  const ch = sb.channel('dash-matches')
+    .on('postgres_changes', { event:'UPDATE', schema:'public', table:'matches' }, (p) => {
+      const u = p.new
+      STATE.dbMatches[u.id] = u
+      $('match-list').innerHTML = buildMatchList()
+      bindInputs()
+    })
+    .subscribe()
+  STATE.realtimeSubs.push(ch)
+
+  bindInputs()
+}
+
+function bindInputs() {
+  document.querySelectorAll('input[type=number]').forEach(inp => {
+    inp.addEventListener('input', () => {
+      let v = parseInt(inp.value)
+      if (isNaN(v) || v < 0) inp.value = ''
+      else if (v > 99) inp.value = 99
+    })
+    inp.addEventListener('keydown', e => {
+      if (e.key === 'Enter') {
+        const id = parseInt(inp.id.replace(/^[ha]/,''))
+        window.savePred && window.savePred(id)
+      }
+    })
+  })
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  RANKING
+// ═══════════════════════════════════════════════════════════════
+async function loadRanking() {
+  const { data } = await sb.from('profiles')
+    .select('id,username,total_points')
+    .order('total_points', { ascending: false })
+    .limit(200)
+
+  const { data: preds } = await sb.from('predictions').select('user_id,home_score,away_score,points')
+  const counts = {}
+  if (preds) preds.forEach(p => {
+    if (!counts[p.user_id]) counts[p.user_id] = { total:0, exact:0, partial:0 }
+    counts[p.user_id].total++
+    if (p.points===3) counts[p.user_id].exact++
+    else if (p.points===1) counts[p.user_id].partial++
+  })
+
+  const rows = !data?.length
+    ? '<div class="text-center py-16"><div class="text-5xl mb-4">🏆</div><p class="text-slate-400">Ranking ainda vazio!</p></div>'
+    : data.map((u,i) => {
+        const rank = i+1
+        const isMe = u.id === STATE.user?.id
+        const c = counts[u.id] || { total:0, exact:0, partial:0 }
+        const medal = rank===1?'🥇':rank===2?'🥈':rank===3?'🥉':`<span class="text-sm font-bold text-slate-500">${rank}°</span>`
+        return `
+        <div class="flex items-center gap-3 px-4 py-3 rounded-2xl border transition-all
+          ${isMe ? 'bg-gold/10 border-gold/40 glow' : 'bg-card border-border hover:border-slate-600'}">
+          <div class="w-10 flex items-center justify-center text-2xl">${typeof medal==='string'&&medal.includes('°')?medal:medal}</div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-sm text-white truncate">${u.username}</span>
+              ${isMe ? '<span class="text-xs bg-gold/20 text-gold px-2 py-0.5 rounded-full font-semibold flex-shrink-0">Você</span>' : ''}
+            </div>
+            <div class="flex items-center gap-3 mt-0.5 text-xs text-slate-500">
+              <span>${c.total} palpite${c.total!==1?'s':''}</span>
+              ${c.exact>0?`<span class="text-yellow-500">🎯 ${c.exact}</span>`:''}
+              ${c.partial>0?`<span class="text-blue-400">✓ ${c.partial}</span>`:''}
+            </div>
+          </div>
+          <div class="text-right flex-shrink-0">
+            <div class="text-2xl font-black ${isMe?'text-gold':'text-white'}">${u.total_points}</div>
+            <div class="text-xs text-slate-500">pts</div>
+          </div>
+        </div>`
+      }).join('')
+
+  const wrap = $('rank-wrap')
+  if (!wrap) return
+  wrap.innerHTML = `
+    <div class="bg-gradient-to-r from-gold/20 to-yellow-900/20 border border-gold/30 rounded-2xl p-5 mb-6 text-center">
+      <div class="text-4xl mb-2">🏆</div>
+      <h2 class="text-xl font-black text-white">Ranking Geral</h2>
+      <p class="text-xs text-slate-400 mt-1">Atualizado em tempo real · ${data?.length||0} participantes</p>
+    </div>
+    <div class="flex items-center gap-4 mb-4 px-1 text-xs text-slate-500">
+      <span class="flex items-center gap-1"><span class="badge-3 rounded px-1.5 py-0.5 text-white font-bold">3pts</span> Placar exato</span>
+      <span class="flex items-center gap-1"><span class="badge-1 rounded px-1.5 py-0.5 text-white font-bold">1pt</span> Resultado</span>
+      <span class="flex items-center gap-1"><span class="badge-0 rounded px-1.5 py-0.5 text-white font-bold">0pts</span> Errou</span>
+    </div>
+    <div class="flex flex-col gap-2">${rows}</div>`
+
+  // Realtime ranking
+  const ch = sb.channel('ranking-rt')
+    .on('postgres_changes', { event:'UPDATE', schema:'public', table:'profiles' }, () => loadRanking())
+    .subscribe()
+  STATE.realtimeSubs.push(ch)
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  MEUS PALPITES
+// ═══════════════════════════════════════════════════════════════
+async function pageMyPicks() {
+  await loadUserPredictions()
+  await loadDbMatches()
+  await loadProfile()
+
+  const preds = Object.values(STATE.predictions)
+  const total   = preds.length
+  const pending = MATCHES.length - total
+
+  let exact = 0, partial = 0, miss = 0
+  preds.forEach(p => {
+    const dbM = STATE.dbMatches[p.match_id]
+    if (!dbM || dbM.home_score == null) return
+    const pts = calcPoints(p.home_score, p.away_score, dbM.home_score, dbM.away_score)
+    if (pts===3) exact++
+    else if (pts===1) partial++
+    else miss++
+  })
+
+  const rows = MATCHES.filter(m => STATE.predictions[m.id]).map(m => {
+    const pred = STATE.predictions[m.id]
+    const dbM  = STATE.dbMatches[m.id] || {}
+    const home = TEAMS[m.home], away = TEAMS[m.away]
+    const hasResult = dbM.home_score != null
+    const pts = hasResult ? calcPoints(pred.home_score, pred.away_score, dbM.home_score, dbM.away_score) : null
+
+    const ptsBadge = pts===3
+      ? '<span class="badge-3 text-white text-xs font-black px-2.5 py-1 rounded-full">🎯 +3</span>'
+      : pts===1
+      ? '<span class="badge-1 text-white text-xs font-black px-2.5 py-1 rounded-full">✓ +1</span>'
+      : pts===0
+      ? '<span class="badge-0 text-white text-xs font-black px-2.5 py-1 rounded-full">✕ 0</span>'
+      : '<span class="text-xs text-slate-500">aguardando</span>'
+
+    const border = pts===3?'border-yellow-700/50':pts===1?'border-blue-700/50':'border-border'
+
+    return `
+    <div class="bg-card border ${border} rounded-2xl px-4 py-3">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-xs text-slate-500">Grupo ${m.group} · R${m.round} · ${fmtFull(m.dt)}</span>
+        ${ptsBadge}
+      </div>
+      <div class="flex items-center gap-3">
+        <div class="flex-1 flex items-center gap-2 min-w-0">
+          <span class="text-xl">${home.flag}</span>
+          <span class="text-sm font-semibold text-white truncate">${home.name}</span>
+        </div>
+        <div class="flex-shrink-0 text-center">
+          <div class="text-sm font-black text-gold">${pred.home_score} × ${pred.away_score}</div>
+          ${hasResult ? `<div class="text-xs text-slate-500 mt-0.5">${dbM.home_score} × ${dbM.away_score}</div>` : ''}
+        </div>
+        <div class="flex-1 flex items-center justify-end gap-2 min-w-0">
+          <span class="text-sm font-semibold text-white truncate">${away.name}</span>
+          <span class="text-xl">${away.flag}</span>
+        </div>
+      </div>
+    </div>`
+  }).join('')
+
+  return `
+  <div class="max-w-3xl mx-auto px-4 py-6">
+    <div class="bg-gradient-to-r from-navy to-card border border-border rounded-2xl p-5 mb-6">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="w-12 h-12 rounded-full bg-gold/20 border-2 border-gold flex items-center justify-center">
+          <span class="text-xl font-black text-gold">${(STATE.profile?.username||'U')[0].toUpperCase()}</span>
+        </div>
+        <div>
+          <h2 class="font-black text-white text-lg">${STATE.profile?.username||'Usuário'}</h2>
+          <p class="text-xs text-slate-400">Meus palpites</p>
+        </div>
+        <div class="ml-auto text-right">
+          <div class="text-3xl font-black text-gold">${STATE.profile?.total_points||0}</div>
+          <div class="text-xs text-slate-400">pontos</div>
+        </div>
+      </div>
+      <div class="grid grid-cols-4 gap-2 text-center">
+        <div class="bg-navy rounded-xl p-2"><div class="text-xl font-black text-white">${total}</div><div class="text-xs text-slate-400">palpites</div></div>
+        <div class="bg-yellow-900/30 rounded-xl p-2"><div class="text-xl font-black text-yellow-400">${exact}</div><div class="text-xs text-slate-400">cravados</div></div>
+        <div class="bg-blue-900/30 rounded-xl p-2"><div class="text-xl font-black text-blue-400">${partial}</div><div class="text-xs text-slate-400">acertos</div></div>
+        <div class="bg-slate-800/50 rounded-xl p-2"><div class="text-xl font-black text-slate-400">${pending}</div><div class="text-xs text-slate-400">pendentes</div></div>
+      </div>
+    </div>
+    ${total===0
+      ? '<div class="text-center py-16"><div class="text-5xl mb-4">⚽</div><p class="text-slate-400">Ainda sem palpites. Vá para "Jogos"!</p></div>'
+      : `<div class="flex flex-col gap-3">${rows}</div>`}
+  </div>`
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  ADMIN
+// ═══════════════════════════════════════════════════════════════
+async function pageAdmin() {
+  const { data: prof } = await sb.from('profiles').select('is_admin').eq('id', STATE.user.id).single()
+  if (!prof?.is_admin) {
+    return `<div class="max-w-3xl mx-auto px-4 py-16 text-center">
+      <div class="text-5xl mb-4">🔒</div>
+      <h2 class="text-xl font-bold text-white mb-2">Acesso Restrito</h2>
+      <p class="text-slate-400">Apenas administradores podem inserir resultados.</p>
+    </div>`
+  }
+
+  await loadDbMatches()
+
+  const cards = MATCHES.map(m => {
+    const home = TEAMS[m.home], away = TEAMS[m.away]
+    const dbM = STATE.dbMatches[m.id] || {}
+    const hasResult = dbM.home_score != null
+    const locked = isLocked(m)
+
+    return `
+    <div class="bg-card border border-border rounded-2xl p-4" id="admin-card-${m.id}">
+      <div class="flex items-center justify-between mb-3 text-xs">
+        <span class="text-slate-400 font-bold">Grupo ${m.group} · R${m.round}</span>
+        <div class="flex items-center gap-2">
+          ${hasResult ? '<span class="bg-green-900 text-green-400 px-2 py-0.5 rounded-full font-bold">✓ Salvo</span>' : ''}
+          <span class="text-slate-500">${fmtFull(m.dt)}</span>
+        </div>
+      </div>
+      <div class="flex items-center gap-3">
+        <div class="flex-1 flex items-center gap-2 min-w-0">
+          <span class="text-xl">${home.flag}</span>
+          <span class="text-sm font-semibold text-white truncate">${home.name}</span>
+        </div>
+        <div class="flex items-center gap-2 flex-shrink-0">
+          <input type="number" min="0" max="99" id="ah${m.id}" value="${hasResult?dbM.home_score:''}" placeholder="0"
+            ${!locked?'disabled':''} class="score-inp bg-navy border border-border rounded-lg px-2 py-1.5 text-lg font-black text-white
+                focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold ${!locked?'opacity-40':''}" />
+          <span class="text-slate-500 font-bold">×</span>
+          <input type="number" min="0" max="99" id="aa${m.id}" value="${hasResult?dbM.away_score:''}" placeholder="0"
+            ${!locked?'disabled':''} class="score-inp bg-navy border border-border rounded-lg px-2 py-1.5 text-lg font-black text-white
+                focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold ${!locked?'opacity-40':''}" />
+        </div>
+        <div class="flex-1 flex items-center justify-end gap-2 min-w-0">
+          <span class="text-sm font-semibold text-white truncate">${away.name}</span>
+          <span class="text-xl">${away.flag}</span>
+        </div>
+      </div>
+      ${locked
+        ? `<button onclick="saveResult(${m.id})" id="admin-btn-${m.id}"
+            class="mt-3 w-full bg-gold hover:bg-gold-dark text-night font-bold py-2 px-4 rounded-xl transition-colors text-sm">
+            ${hasResult ? 'Atualizar' : 'Salvar resultado'}
+          </button>`
+        : `<p class="text-xs text-slate-600 mt-3 text-center">Disponível após o início do jogo</p>`}
+    </div>`
+  }).join('')
+
+  return `
+  <div class="max-w-3xl mx-auto px-4 py-6">
+    <div class="bg-red-900/20 border border-red-700/40 rounded-2xl p-4 mb-6 flex items-center gap-3">
+      <span class="text-2xl">⚙️</span>
+      <div>
+        <p class="font-bold text-red-300 text-sm">Painel do Administrador</p>
+        <p class="text-xs text-slate-400">Insira os resultados. Os pontos são calculados automaticamente.</p>
+      </div>
+    </div>
+    <div class="flex flex-col gap-4">${cards}</div>
+  </div>`
+}
+
+function bindAdmin() {
+  window.saveResult = async (matchId) => {
+    const hv = parseInt($(`ah${matchId}`)?.value)
+    const av = parseInt($(`aa${matchId}`)?.value)
+    if (isNaN(hv) || isNaN(av) || hv<0 || av<0) { toast('Preencha os dois placares!','error'); return }
+
+    const btn = $(`admin-btn-${matchId}`)
+    if (btn) { btn.disabled=true; btn.textContent='Salvando...' }
+
+    // Update match
+    const { error } = await sb.from('matches').upsert({
+      id: matchId, home_score: hv, away_score: av, status: 'finished'
+    })
+
+    if (error) {
+      toast('Erro: ' + error.message, 'error')
+      if (btn) { btn.disabled=false; btn.textContent='Salvar resultado' }
+      return
+    }
+
+    // Calculate points
+    const { error: rpcErr } = await sb.rpc('calculate_points_for_match', {
+      p_match_id: matchId, p_home_score: hv, p_away_score: av
+    })
+
+    if (rpcErr) toast('Resultado salvo. Erro ao calcular pontos: ' + rpcErr.message, 'warning')
+    else toast('Resultado salvo e pontos calculados! ✓', 'success')
+
+    STATE.dbMatches[matchId] = { id:matchId, home_score:hv, away_score:av, status:'finished' }
+    if (btn) { btn.disabled=false; btn.textContent='Atualizar' }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════════════
+sb.auth.onAuthStateChange((event, session) => {
+  if (event === 'SIGNED_OUT') { STATE.user=null; STATE.profile=null }
+  else if (event === 'SIGNED_IN' && session?.user) { STATE.user=session.user; STATE.profile=null }
+})
+
+;(async () => {
+  const { data: { user } } = await sb.auth.getUser()
+  if (user) { STATE.user = user; go('dashboard') }
+  else go('login')
+})()
+</script>
+</body>
+</html>
