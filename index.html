@@ -248,6 +248,7 @@ let STATE = {
   dbMatches: {},
   myBolaos: [],         // bolões do usuário
   currentBolao: null,   // bolão ativo { id, name } ou null = geral
+  rankRound: null,      // filtro de rodada no ranking (null=geral, 1|2|3)
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1063,23 +1064,42 @@ async function loadRanking() {
     profileIds = (members || []).map(m => m.user_id)
   }
 
-  let query = sb.from('profiles').select('id,username,total_points').order('total_points', { ascending: false }).limit(200)
-  if (profileIds) query = query.in('id', profileIds.length ? profileIds : ['00000000-0000-0000-0000-000000000000'])
+  // IDs dos jogos da rodada filtrada
+  const roundMatchIds = STATE.rankRound
+    ? new Set(MATCHES.filter(m => m.round === STATE.rankRound).map(m => m.id))
+    : null
 
-  const { data } = await query
-
-  const { data: preds } = await sb.from('predictions').select('user_id,points')
+  // Busca predições (com match_id para filtrar por rodada se necessário)
+  const { data: preds } = await sb.from('predictions').select('user_id,match_id,points')
+  const roundPoints = {}  // pontos por usuário na rodada filtrada
   const counts = {}
   if (preds) preds.forEach(p => {
+    const inRound = !roundMatchIds || roundMatchIds.has(p.match_id)
     if (!counts[p.user_id]) counts[p.user_id] = { total:0, exact:0, partial:0 }
-    counts[p.user_id].total++
-    if (p.points===3) counts[p.user_id].exact++
-    else if (p.points===1) counts[p.user_id].partial++
+    if (inRound) {
+      counts[p.user_id].total++
+      if (p.points===3) counts[p.user_id].exact++
+      else if (p.points===1) counts[p.user_id].partial++
+      roundPoints[p.user_id] = (roundPoints[p.user_id]||0) + (p.points||0)
+    }
   })
+
+  // Se filtro por rodada, ordenar pelo somatório da rodada
+  let query = sb.from('profiles').select('id,username,total_points').limit(200)
+  if (profileIds) query = query.in('id', profileIds.length ? profileIds : ['00000000-0000-0000-0000-000000000000'])
+  const { data: rawData } = await query
+
+  let data = rawData
+  if (STATE.rankRound && data) {
+    data = [...data].sort((a,b) => (roundPoints[b.id]||0) - (roundPoints[a.id]||0))
+  } else if (data) {
+    data = [...data].sort((a,b) => b.total_points - a.total_points)
+  }
 
   const rows = !data?.length
     ? '<div class="text-center py-16"><div class="text-5xl mb-4">🏆</div><p class="text-slate-400">Nenhum participante ainda.</p></div>'
     : data.map((u,i) => {
+        const pts = STATE.rankRound ? (roundPoints[u.id]||0) : u.total_points
         const rank = i+1
         const isMe = u.id === STATE.user?.id
         const c = counts[u.id] || { total:0, exact:0, partial:0 }
@@ -1100,41 +1120,57 @@ async function loadRanking() {
             </div>
           </div>
           <div class="text-right flex-shrink-0">
-            <div class="text-2xl font-black ${isMe?'text-gold':'text-white'}">${u.total_points}</div>
-            <div class="text-xs text-slate-500">pts</div>
+            <div class="text-2xl font-black ${isMe?'text-gold':'text-white'}">${pts}</div>
+            <div class="text-xs text-slate-500">${STATE.rankRound ? 'pts R'+STATE.rankRound : 'pts total'}</div>
           </div>
         </div>`
       }).join('')
 
   // Seletor de bolões
   const allOptions = [
-    { id: null, name: '🌐 Ranking Geral' },
+    { id: null, name: '🌐 Geral' },
     ...STATE.myBolaos.map(b => ({ id: b.id, name: '🎱 ' + b.name }))
   ]
-  const selector = allOptions.length > 1 ? `
-    <div class="flex gap-2 overflow-x-auto pb-2 mb-5 no-scrollbar">
+  const bolaoSelector = allOptions.length > 1 ? `
+    <div class="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
       ${allOptions.map(opt => {
         const active = (STATE.currentBolao?.id || null) === opt.id
-        return `<button onclick="switchRanking('${opt.id}','${opt.name.replace(/'/g,"\\'")}',this)"
+        return `<button onclick="switchRanking('${opt.id}','${opt.name.replace(/'/g,"\\'")}')"
           class="flex-shrink-0 px-4 py-2 rounded-full text-sm font-bold border transition-all
             ${active ? 'bg-gold border-gold text-night' : 'border-border text-slate-400 hover:border-gold hover:text-gold'}">
-          ${opt.name}
-        </button>`
+          ${opt.name}</button>`
       }).join('')}
     </div>` : ''
 
+  // Filtro por rodada
+  const roundFilter = `
+    <div class="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+      ${[null,1,2,3].map(r => {
+        const active = STATE.rankRound === r
+        const label = r === null ? 'Todas rodadas' : 'Rodada ' + r
+        return `<button onclick="switchRankRound(${r})"
+          class="flex-shrink-0 px-4 py-2 rounded-full text-sm font-bold border transition-all
+            ${active ? 'bg-navy border-gold text-gold' : 'border-border text-slate-500 hover:border-slate-400 hover:text-slate-300'}">
+          ${label}</button>`
+      }).join('')}
+    </div>`
+
   const title = STATE.currentBolao ? STATE.currentBolao.name : 'Ranking Geral'
+  const subtitle = STATE.rankRound ? `Rodada ${STATE.rankRound} · ${data?.length||0} participantes` : `${data?.length||0} participantes · atualizado em tempo real`
   const icon  = STATE.currentBolao ? '🎱' : '🏆'
 
   wrap.innerHTML = `
-    ${selector}
+    <div class="flex flex-col gap-2 mb-5">
+      ${bolaoSelector}
+      ${roundFilter}
+    </div>
     <div class="bg-gradient-to-r from-gold/20 to-yellow-900/20 border border-gold/30 rounded-2xl p-5 mb-5 text-center">
       <div class="text-4xl mb-2">${icon}</div>
       <h2 class="text-xl font-black text-white">${title}</h2>
-      <p class="text-xs text-slate-400 mt-1">${data?.length||0} participantes · atualizado em tempo real</p>
+      <p class="text-xs text-slate-400 mt-1">${subtitle}</p>
     </div>
     <div class="flex items-center gap-4 mb-4 px-1 text-xs text-slate-500">
-      <span class="flex items-center gap-1"><span class="badge-3 rounded px-1.5 py-0.5 text-white font-bold">3pts</span> Placar exato</span>
+      <span class="flex items-center gap-1"><span class="badge-3 rounded px-1.5 py-0.5 text-white font-bold">3pts</span> Exato</span>
       <span class="flex items-center gap-1"><span class="badge-1 rounded px-1.5 py-0.5 text-white font-bold">1pt</span> Resultado</span>
       <span class="flex items-center gap-1"><span class="badge-0 rounded px-1.5 py-0.5 text-white font-bold">0pts</span> Errou</span>
     </div>
@@ -1142,8 +1178,13 @@ async function loadRanking() {
 
   window.switchRanking = (id, name) => {
     STATE.currentBolao = id && id !== 'null' ? { id, name: name.replace(/^🎱 /,'') } : null
-    const wrap2 = $('rank-wrap')
-    if (wrap2) wrap2.innerHTML = spin()
+    $('rank-wrap').innerHTML = spin()
+    loadRanking()
+  }
+
+  window.switchRankRound = (r) => {
+    STATE.rankRound = r
+    $('rank-wrap').innerHTML = spin()
     loadRanking()
   }
 
