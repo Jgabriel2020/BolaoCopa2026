@@ -410,8 +410,8 @@ function pageAuth(mode) {
   const loginForm = `
     <form id="auth-form" class="flex flex-col gap-4">
       <div>
-        <label class="text-xs font-bold text-slate-400 uppercase tracking-wide mb-1.5 block">E-mail</label>
-        <input id="f-email" type="email" required placeholder="seu@email.com" autocomplete="email"
+        <label class="text-xs font-bold text-slate-400 uppercase tracking-wide mb-1.5 block">Nome de usuário</label>
+        <input id="f-user" type="text" required placeholder="seu_nick" autocomplete="username"
           class="w-full bg-navy border border-border rounded-xl px-4 py-2.5 text-white text-sm placeholder-slate-600
                  focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold transition-colors"/>
       </div>
@@ -490,18 +490,46 @@ async function handleLogin(e) {
   btn.disabled = true; btn.textContent = 'Entrando...'
   err.classList.add('hidden')
 
+  const username = $('f-user').value.trim()
+  const password = $('f-pass').value
+
+  // Busca o email pelo username
+  const { data: profile, error: profileErr } = await sb
+    .from('profiles')
+    .select('id')
+    .eq('username', username)
+    .maybeSingle()
+
+  if (profileErr || !profile) {
+    err.textContent = 'Usuário não encontrado.'
+    err.classList.remove('hidden')
+    btn.disabled = false; btn.textContent = 'Entrar'
+    return
+  }
+
+  // Busca o email do auth.users via RPC
+  const { data: emailData, error: emailErr } = await sb
+    .rpc('get_email_by_id', { p_id: profile.id })
+
+  if (emailErr || !emailData) {
+    err.textContent = 'Erro ao autenticar. Tente novamente.'
+    err.classList.remove('hidden')
+    btn.disabled = false; btn.textContent = 'Entrar'
+    return
+  }
+
   const { data, error } = await sb.auth.signInWithPassword({
-    email: $('f-email').value.trim(),
-    password: $('f-pass').value
+    email: emailData,
+    password,
   })
 
   if (error) {
-    err.textContent = error.message.includes('Invalid') ? 'E-mail ou senha incorretos.' : error.message
+    err.textContent = 'Senha incorreta.'
     err.classList.remove('hidden')
     btn.disabled = false; btn.textContent = 'Entrar'
   } else {
     STATE.user = data.user
-    toast('Bem-vindo! ⚽', 'success')
+    toast('Bem-vindo, ' + username + '! ⚽', 'success')
     go('dashboard')
   }
 }
