@@ -210,15 +210,10 @@ const MATCHES = [
   {id:72,group:'J',round:3,home:'ALG',away:'AUT',dt:'2026-06-28T02:00Z',venue:'Kansas City'},
 ]
 
-// Gera email falso interno a partir do username (sem expor email ao usuário)
-function fakeEmail(username) {
-  return username.toLowerCase() + '@bolao.interno'
-}
-
-// Garante mínimo 6 chars para o Supabase (transparente ao usuário)
-function padPass(p) {
-  return p.length >= 6 ? p : p.padEnd(6, '0')
-}
+// Sessão local (sem Supabase Auth)
+function saveSession(profile) { localStorage.setItem('bolao_session', JSON.stringify(profile)) }
+function loadSession()        { try { return JSON.parse(localStorage.getItem('bolao_session')) } catch { return null } }
+function clearSession()       { localStorage.removeItem('bolao_session') }
 
 // ═══════════════════════════════════════════════════════════════
 //  STATE
@@ -321,12 +316,11 @@ async function go(page) {
 
   // Require auth
   if (!STATE.user) {
-    const { data: { user } } = await sb.auth.getUser()
-    if (!user) { go('login'); return }
-    STATE.user = user
+    const session = loadSession()
+    if (!session) { go('login'); return }
+    STATE.user = session
+    STATE.profile = session
   }
-
-  if (!STATE.profile) await loadProfile()
 
   const isAdmin = STATE.profile?.is_admin || false
   const uname = STATE.profile?.username || STATE.user.email?.split('@')[0] || 'Usuário'
@@ -357,9 +351,9 @@ async function go(page) {
 // ═══════════════════════════════════════════════════════════════
 async function loadProfile() {
   const { data } = await sb.from('profiles')
-    .select('username,total_points,is_admin')
+    .select('id,username,total_points,is_admin')
     .eq('id', STATE.user.id).single()
-  STATE.profile = data
+  if (data) { STATE.profile = data; STATE.user = data; saveSession(data) }
 }
 
 async function loadUserPredictions() {
@@ -410,7 +404,7 @@ function header(active, uname, isAdmin) {
 
 function bindHeader() {
   window.go = go
-  window.logout = async () => { await sb.auth.signOut(); STATE.user=null; STATE.profile=null; go('login') }
+  window.logout = () => { clearSession(); STATE.user=null; STATE.profile=null; go('login') }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -497,10 +491,9 @@ async function handleLogin(e) {
   const username = $('f-user').value.trim()
   const password = $('f-pass').value
 
-  // Verifica se username existe e senha bate
   const { data: profile, error: profileErr } = await sb
     .from('profiles')
-    .select('id')
+    .select('id, username, is_admin, total_points')
     .eq('username', username)
     .eq('senha', password)
     .maybeSingle()
@@ -512,38 +505,31 @@ async function handleLogin(e) {
     return
   }
 
-  const { data, error } = await sb.auth.signInWithPassword({
-    email: fakeEmail(username),
-    password: padPass(password),
-  })
-
-  if (error) {
-    err.textContent = 'Senha incorreta.'
-    err.classList.remove('hidden')
-    btn.disabled = false; btn.textContent = 'Entrar'
-  } else {
-    STATE.user = data.user
-    toast('Bem-vindo, ' + username + '! ⚽', 'success')
-    go('dashboard')
-  }
+  STATE.user = profile
+  STATE.profile = profile
+  saveSession(profile)
+  toast('Bem-vindo, ' + username + '! ⚽', 'success')
+  go('dashboard')
 }
 
 async function handleRegister(e) {
   e.preventDefault()
   const btn = $('auth-btn'), err = $('auth-err')
   const username = $('f-user').value.trim()
-  const email    = fakeEmail(username)
   const pass     = $('f-pass').value
 
   if (!/^[a-zA-Z0-9_]{3,20}$/.test(username)) {
     err.textContent = 'Nome de usuário: 3-20 caracteres (letras, números, _)'
     err.classList.remove('hidden'); return
   }
+  if (!pass) {
+    err.textContent = 'Digite uma senha.'
+    err.classList.remove('hidden'); return
+  }
 
   btn.disabled = true; btn.textContent = 'Cadastrando...'
   err.classList.add('hidden')
 
-  // Check username
   const { data: ex } = await sb.from('profiles').select('id').eq('username', username).maybeSingle()
   if (ex) {
     err.textContent = 'Nome de usuário já em uso.'
@@ -551,24 +537,21 @@ async function handleRegister(e) {
     btn.disabled = false; btn.textContent = 'Criar conta'; return
   }
 
-  const { data, error } = await sb.auth.signUp({
-    email,
-    password: padPass(pass),
-    options: { emailRedirectTo: null, data: { username } }
+  // Gera UUID no cliente e insere direto na tabela profiles
+  const newId = crypto.randomUUID()
+  const { error } = await sb.from('profiles').insert({
+    id: newId, username, senha: pass, total_points: 0, is_admin: false
   })
   if (error) {
-    err.textContent = error.message.includes('Password') ? 'Senha deve ter no mínimo 4 caracteres.' : error.message
+    err.textContent = 'Erro ao criar conta: ' + error.message
     err.classList.remove('hidden')
     btn.disabled = false; btn.textContent = 'Criar conta'; return
   }
 
-  if (data.user) {
-    await sb.from('profiles').upsert({ id: data.user.id, username, senha: pass, total_points: 0 })
-    STATE.user = data.user
-    STATE.profile = { username, total_points: 0, is_admin: false }
-    // Login automático sem precisar verificar email
-    await sb.auth.signInWithPassword({ email, password: padPass(pass) })
-  }
+  const profile = { id: newId, username, is_admin: false, total_points: 0 }
+  STATE.user = profile
+  STATE.profile = profile
+  saveSession(profile)
   toast('Conta criada! Bem-vindo! 🎉', 'success')
   go('dashboard')
 }
@@ -1066,14 +1049,9 @@ function bindAdmin() {
 // ═══════════════════════════════════════════════════════════════
 //  INIT
 // ═══════════════════════════════════════════════════════════════
-sb.auth.onAuthStateChange((event, session) => {
-  if (event === 'SIGNED_OUT') { STATE.user=null; STATE.profile=null }
-  else if (event === 'SIGNED_IN' && session?.user) { STATE.user=session.user; STATE.profile=null }
-})
-
-;(async () => {
-  const { data: { user } } = await sb.auth.getUser()
-  if (user) { STATE.user = user; go('dashboard') }
+;(() => {
+  const session = loadSession()
+  if (session) { STATE.user = session; STATE.profile = session; go('dashboard') }
   else go('login')
 })()
 </script>
