@@ -225,6 +225,8 @@ let STATE = {
   predictions: {},
   dashView: 'rodada',   // 'rodada' | 'grupo'
   dashFilter: 1,        // 1|2|3 or 'A'..'L'
+  dashPage: 0,          // página atual dentro do filtro
+  dashPageSize: 6,      // jogos por página
   realtimeSubs: [],
   dbMatches: {},        // match results from DB
 }
@@ -604,19 +606,42 @@ function buildMatchList() {
 
   if (!matches.length) return '<p class="text-slate-500 text-center py-8">Nenhum jogo encontrado.</p>'
 
+  const ps = STATE.dashPageSize
+  const totalPages = Math.ceil(matches.length / ps)
+  if (STATE.dashPage >= totalPages) STATE.dashPage = 0
+  const page = STATE.dashPage
+  const slice = matches.slice(page * ps, (page + 1) * ps)
+
   // Group by day
   const byDay = {}
-  matches.forEach(m => {
+  slice.forEach(m => {
     const d = fmtDay(m.dt)
     if (!byDay[d]) byDay[d] = []
     byDay[d].push(m)
   })
 
-  return Object.entries(byDay).map(([day, list]) => `
-    <div class="mb-6">
+  const cards = Object.entries(byDay).map(([day, list]) => `
+    <div class="mb-4">
       <h3 class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3 px-1 capitalize">${day}</h3>
       <div class="flex flex-col gap-3">${list.map(m => buildCard(m)).join('')}</div>
     </div>`).join('')
+
+  const pagination = totalPages > 1 ? `
+    <div class="flex items-center justify-center gap-3 mt-6 mb-2">
+      <button onclick="setDashPage(${page-1})" ${page===0?'disabled':''}
+        class="px-4 py-2 rounded-xl text-sm font-bold border transition-all
+          ${page===0?'border-border text-slate-600 cursor-not-allowed':'border-border text-slate-400 hover:border-gold hover:text-gold'}">
+        ← Anterior
+      </button>
+      <span class="text-xs text-slate-500 font-semibold">${page+1} / ${totalPages}</span>
+      <button onclick="setDashPage(${page+1})" ${page===totalPages-1?'disabled':''}
+        class="px-4 py-2 rounded-xl text-sm font-bold border transition-all
+          ${page===totalPages-1?'border-border text-slate-600 cursor-not-allowed':'border-border text-slate-400 hover:border-gold hover:text-gold'}">
+        Próximo →
+      </button>
+    </div>` : ''
+
+  return cards + pagination
 }
 
 function buildCard(match) {
@@ -713,6 +738,7 @@ function bindDashboard() {
   window.setView = (v) => {
     STATE.dashView = v
     STATE.dashFilter = v==='rodada' ? 1 : 'A'
+    STATE.dashPage = 0
     $('btn-rodada').className = `flex-1 py-2 text-sm font-semibold rounded-lg transition-all ${v==='rodada'?'bg-gold text-night':'text-slate-400 hover:text-white'}`
     $('btn-grupo').className  = `flex-1 py-2 text-sm font-semibold rounded-lg transition-all ${v==='grupo'?'bg-gold text-night':'text-slate-400 hover:text-white'}`
     $('pills').innerHTML = buildPills()
@@ -722,9 +748,17 @@ function bindDashboard() {
 
   window.setFilter = (f) => {
     STATE.dashFilter = f
+    STATE.dashPage = 0
     $('pills').innerHTML = buildPills()
     $('match-list').innerHTML = buildMatchList()
     bindInputs()
+  }
+
+  window.setDashPage = (p) => {
+    STATE.dashPage = p
+    $('match-list').innerHTML = buildMatchList()
+    bindInputs()
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   window.savePred = async (matchId) => {
