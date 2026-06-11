@@ -444,7 +444,7 @@ function pageAuth(mode) {
       </div>
       <div>
         <label class="text-xs font-bold text-slate-400 uppercase tracking-wide mb-1.5 block">Senha</label>
-        <input id="f-pass" type="password" required placeholder="Mínimo 6 caracteres" minlength="6" autocomplete="new-password"
+        <input id="f-pass" type="password" required placeholder="Mínimo 4 caracteres" minlength="4" autocomplete="new-password"
           class="w-full bg-navy border border-border rounded-xl px-4 py-2.5 text-white text-sm placeholder-slate-600
                  focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold transition-colors"/>
       </div>
@@ -557,9 +557,13 @@ async function handleRegister(e) {
     btn.disabled = false; btn.textContent = 'Criar conta'; return
   }
 
-  const { data, error } = await sb.auth.signUp({ email, password: pass })
+  const { data, error } = await sb.auth.signUp({
+    email,
+    password: pass,
+    options: { emailRedirectTo: null, data: { username } }
+  })
   if (error) {
-    err.textContent = error.message
+    err.textContent = error.message.includes('Password') ? 'Senha deve ter no mínimo 4 caracteres.' : error.message
     err.classList.remove('hidden')
     btn.disabled = false; btn.textContent = 'Criar conta'; return
   }
@@ -568,6 +572,8 @@ async function handleRegister(e) {
     await sb.from('profiles').upsert({ id: data.user.id, username, total_points: 0 })
     STATE.user = data.user
     STATE.profile = { username, total_points: 0, is_admin: false }
+    // Login automático sem precisar verificar email
+    await sb.auth.signInWithPassword({ email, password: pass })
   }
   toast('Conta criada! Bem-vindo! 🎉', 'success')
   go('dashboard')
