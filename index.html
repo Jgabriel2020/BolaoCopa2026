@@ -352,6 +352,10 @@ async function go(page) {
     await loadDbMatches()
     body = pageDashboard()
   } else if (page === 'ranking') {
+    // Carrega bolões do usuário antes de renderizar
+    const { data: mem } = await sb.from('bolao_members')
+      .select('bolao_id, bolaos(id, name)').eq('user_id', STATE.user.id)
+    STATE.myBolaos = (mem || []).map(m => m.bolaos).filter(Boolean)
     body = `<div id="rank-wrap" class="max-w-3xl mx-auto px-4 py-6">${spin()}</div>`
   } else if (page === 'results') {
     await loadDbMatches()
@@ -1093,16 +1097,32 @@ async function loadRanking() {
         </div>`
       }).join('')
 
-  const title = STATE.currentBolao ? `🎱 ${STATE.currentBolao.name}` : '🏆 Ranking Geral'
-  const subtitle = STATE.currentBolao
-    ? `${data?.length||0} participantes · <button onclick="selectBolao(null,null)" class="text-gold hover:underline">Ver ranking geral</button>`
-    : `Atualizado em tempo real · ${data?.length||0} participantes`
+  // Seletor de bolões
+  const allOptions = [
+    { id: null, name: '🌐 Ranking Geral' },
+    ...STATE.myBolaos.map(b => ({ id: b.id, name: '🎱 ' + b.name }))
+  ]
+  const selector = allOptions.length > 1 ? `
+    <div class="flex gap-2 overflow-x-auto pb-2 mb-5 no-scrollbar">
+      ${allOptions.map(opt => {
+        const active = (STATE.currentBolao?.id || null) === opt.id
+        return `<button onclick="switchRanking('${opt.id}','${opt.name.replace(/'/g,"\\'")}',this)"
+          class="flex-shrink-0 px-4 py-2 rounded-full text-sm font-bold border transition-all
+            ${active ? 'bg-gold border-gold text-night' : 'border-border text-slate-400 hover:border-gold hover:text-gold'}">
+          ${opt.name}
+        </button>`
+      }).join('')}
+    </div>` : ''
+
+  const title = STATE.currentBolao ? STATE.currentBolao.name : 'Ranking Geral'
+  const icon  = STATE.currentBolao ? '🎱' : '🏆'
 
   wrap.innerHTML = `
-    <div class="bg-gradient-to-r from-gold/20 to-yellow-900/20 border border-gold/30 rounded-2xl p-5 mb-6 text-center">
-      <div class="text-4xl mb-2">${STATE.currentBolao ? '🎱' : '🏆'}</div>
+    ${selector}
+    <div class="bg-gradient-to-r from-gold/20 to-yellow-900/20 border border-gold/30 rounded-2xl p-5 mb-5 text-center">
+      <div class="text-4xl mb-2">${icon}</div>
       <h2 class="text-xl font-black text-white">${title}</h2>
-      <p class="text-xs text-slate-400 mt-1">${subtitle}</p>
+      <p class="text-xs text-slate-400 mt-1">${data?.length||0} participantes · atualizado em tempo real</p>
     </div>
     <div class="flex items-center gap-4 mb-4 px-1 text-xs text-slate-500">
       <span class="flex items-center gap-1"><span class="badge-3 rounded px-1.5 py-0.5 text-white font-bold">3pts</span> Placar exato</span>
@@ -1110,6 +1130,13 @@ async function loadRanking() {
       <span class="flex items-center gap-1"><span class="badge-0 rounded px-1.5 py-0.5 text-white font-bold">0pts</span> Errou</span>
     </div>
     <div class="flex flex-col gap-2">${rows}</div>`
+
+  window.switchRanking = (id, name) => {
+    STATE.currentBolao = id && id !== 'null' ? { id, name: name.replace(/^🎱 /,'') } : null
+    const wrap2 = $('rank-wrap')
+    if (wrap2) wrap2.innerHTML = spin()
+    loadRanking()
+  }
 
   const ch = sb.channel('ranking-rt-' + (STATE.currentBolao?.id||'geral'))
     .on('postgres_changes', { event:'UPDATE', schema:'public', table:'profiles' }, () => loadRanking())
