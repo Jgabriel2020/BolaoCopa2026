@@ -210,6 +210,11 @@ const MATCHES = [
   {id:72,group:'J',round:3,home:'ALG',away:'AUT',dt:'2026-06-28T02:00Z',venue:'Kansas City'},
 ]
 
+// Garante mínimo 6 chars para o Supabase (transparente ao usuário)
+function padPass(p) {
+  return p.length >= 6 ? p : p.padEnd(6, '0')
+}
+
 // ═══════════════════════════════════════════════════════════════
 //  STATE
 // ═══════════════════════════════════════════════════════════════
@@ -509,7 +514,7 @@ async function handleLogin(e) {
 
   const { data, error } = await sb.auth.signInWithPassword({
     email: profile.email,
-    password,
+    password: padPass(password),
   })
 
   if (error) {
@@ -548,7 +553,7 @@ async function handleRegister(e) {
 
   const { data, error } = await sb.auth.signUp({
     email,
-    password: pass,
+    password: padPass(pass),
     options: { emailRedirectTo: null, data: { username } }
   })
   if (error) {
@@ -562,7 +567,7 @@ async function handleRegister(e) {
     STATE.user = data.user
     STATE.profile = { username, total_points: 0, is_admin: false }
     // Login automático sem precisar verificar email
-    await sb.auth.signInWithPassword({ email, password: pass })
+    await sb.auth.signInWithPassword({ email, password: padPass(pass) })
   }
   toast('Conta criada! Bem-vindo! 🎉', 'success')
   go('dashboard')
