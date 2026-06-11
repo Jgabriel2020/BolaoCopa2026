@@ -226,7 +226,7 @@ let STATE = {
   dashView: 'rodada',   // 'rodada' | 'grupo'
   dashFilter: 1,        // 1|2|3 or 'A'..'L'
   dashPage: 0,          // página atual dentro do filtro
-  dashPageSize: 6,      // jogos por página
+  dashPageSize: 8,      // jogos por página
   realtimeSubs: [],
   dbMatches: {},        // match results from DB
 }
@@ -334,6 +334,9 @@ async function go(page) {
     body = pageDashboard()
   } else if (page === 'ranking') {
     body = `<div id="rank-wrap" class="max-w-3xl mx-auto px-4 py-6">${spin()}</div>`
+  } else if (page === 'results') {
+    await loadDbMatches()
+    body = pageResults()
   } else if (page === 'mypicks') {
     body = await pageMyPicks()
   } else if (page === 'admin') {
@@ -375,9 +378,10 @@ async function loadDbMatches() {
 // ═══════════════════════════════════════════════════════════════
 function header(active, uname, isAdmin) {
   const nav = [
-    {id:'dashboard', label:'Jogos', icon:'⚽'},
-    {id:'mypicks',   label:'Palpites', icon:'🎯'},
-    {id:'ranking',   label:'Ranking', icon:'🏆'},
+    {id:'dashboard',  label:'Jogos',      icon:'⚽'},
+    {id:'results',    label:'Resultados', icon:'📊'},
+    {id:'mypicks',    label:'Palpites',   icon:'🎯'},
+    {id:'ranking',    label:'Ranking',    icon:'🏆'},
     ...(isAdmin ? [{id:'admin', label:'Admin', icon:'⚙️'}] : []),
   ]
   const items = nav.map(n => `
@@ -556,6 +560,66 @@ async function handleRegister(e) {
   saveSession(profile)
   toast('Conta criada! Bem-vindo! 🎉', 'success')
   go('dashboard')
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  RESULTADOS
+// ═══════════════════════════════════════════════════════════════
+function pageResults() {
+  const finished = MATCHES
+    .filter(m => STATE.dbMatches[m.id]?.home_score != null)
+    .sort((a,b) => new Date(b.dt) - new Date(a.dt))
+
+  if (!finished.length) return `
+    <div class="max-w-3xl mx-auto px-4 py-16 text-center">
+      <div class="text-5xl mb-4">⏳</div>
+      <p class="text-slate-400 font-semibold">Nenhum resultado disponível ainda.</p>
+      <p class="text-slate-600 text-sm mt-1">Os resultados aparecerão aqui conforme os jogos forem encerrados.</p>
+    </div>`
+
+  const byRound = {1:[], 2:[], 3:[]}
+  finished.forEach(m => byRound[m.round].push(m))
+
+  const sections = [3,2,1].filter(r => byRound[r].length).map(r => `
+    <div class="mb-8">
+      <h2 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-3 px-1">Rodada ${r}</h2>
+      <div class="flex flex-col gap-3">
+        ${byRound[r].map(m => {
+          const db = STATE.dbMatches[m.id]
+          const home = TEAMS[m.home], away = TEAMS[m.away]
+          const hw = db.home_score > db.away_score, aw = db.away_score > db.home_score
+          return `
+          <div class="bg-card border border-border rounded-2xl px-4 py-4 flex items-center gap-3">
+            <div class="flex-1 flex flex-col items-center gap-1">
+              <span class="text-3xl">${home.flag}</span>
+              <span class="text-xs font-semibold text-center leading-tight ${hw?'text-gold':'text-slate-400'}">${home.name}</span>
+            </div>
+            <div class="flex-shrink-0 flex flex-col items-center gap-1 min-w-[110px]">
+              <div class="flex items-center gap-3">
+                <span class="text-3xl font-black ${hw?'text-gold':'text-white'}">${db.home_score}</span>
+                <span class="text-slate-500 font-bold text-lg">×</span>
+                <span class="text-3xl font-black ${aw?'text-gold':'text-white'}">${db.away_score}</span>
+              </div>
+              <span class="text-xs text-slate-500 mt-0.5">${fmtDay(m.dt).split(',')[0]} · GRP ${m.group}</span>
+            </div>
+            <div class="flex-1 flex flex-col items-center gap-1">
+              <span class="text-3xl">${away.flag}</span>
+              <span class="text-xs font-semibold text-center leading-tight ${aw?'text-gold':'text-slate-400'}">${away.name}</span>
+            </div>
+          </div>`
+        }).join('')}
+      </div>
+    </div>`).join('')
+
+  return `
+  <div class="max-w-3xl mx-auto px-4 py-6">
+    <div class="flex items-center gap-2 mb-6">
+      <span class="text-2xl">📊</span>
+      <h1 class="text-xl font-black text-white">Resultados</h1>
+      <span class="ml-auto text-xs text-slate-500 bg-card border border-border px-3 py-1 rounded-full">${finished.length} jogos encerrados</span>
+    </div>
+    ${sections}
+  </div>`
 }
 
 // ═══════════════════════════════════════════════════════════════
