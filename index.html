@@ -1345,18 +1345,102 @@ async function pageAdmin() {
 
   return `
   <div class="max-w-3xl mx-auto px-4 py-6">
-    <div class="bg-red-900/20 border border-red-700/40 rounded-2xl p-4 mb-6 flex items-center gap-3">
+    <div class="bg-red-900/20 border border-red-700/40 rounded-2xl p-4 mb-4 flex items-center gap-3">
       <span class="text-2xl">⚙️</span>
-      <div>
+      <div class="flex-1">
         <p class="font-bold text-red-300 text-sm">Painel do Administrador</p>
-        <p class="text-xs text-slate-400">Insira os resultados. Os pontos são calculados automaticamente.</p>
+        <p class="text-xs text-slate-400">Insira os resultados manualmente ou busque da API automaticamente.</p>
       </div>
     </div>
+
+    <!-- Botão buscar da API -->
+    <div class="card p-4 mb-6 flex items-center justify-between gap-4">
+      <div>
+        <p class="font-bold text-white text-sm">🌐 Buscar resultados da API</p>
+        <p class="text-xs text-slate-400 mt-0.5">Busca jogos finalizados na football-data.org e atualiza automaticamente.</p>
+      </div>
+      <button onclick="fetchFromApi()" id="api-fetch-btn" class="btn btn-gold flex-shrink-0">Buscar agora</button>
+    </div>
+    <div id="api-fetch-log" class="hidden card p-4 mb-6 text-xs font-mono text-slate-300 leading-relaxed"></div>
+
     <div class="flex flex-col gap-4">${cards}</div>
   </div>`
 }
 
 function bindAdmin() {
+  window.fetchFromApi = async () => {
+    const btn = $('api-fetch-btn')
+    const log = $('api-fetch-log')
+    btn.disabled = true; btn.textContent = 'Buscando...'
+    log.classList.remove('hidden'); log.innerHTML = '⏳ Consultando football-data.org...'
+
+    const MAP = {
+      'MEX':'MEX','RSA':'RSA','KOR':'KOR','CZE':'CZE','CAN':'CAN',
+      'BIH':'BIH','QAT':'QAT','SUI':'SUI','BRA':'BRA','MAR':'MAR',
+      'HAI':'HAI','SCO':'SCO','USA':'USA','PAR':'PAR','AUS':'AUS',
+      'TUR':'TUR','GER':'GER','CUW':'CUW','CIV':'CIV','ECU':'ECU',
+      'NED':'NED','JPN':'JPN','SWE':'SWE','TUN':'TUN','ESP':'ESP',
+      'CPV':'CPV','SAU':'KSA','URU':'URU','BEL':'BEL','EGY':'EGY',
+      'IRN':'IRN','NZL':'NZL','FRA':'FRA','SEN':'SEN','IRQ':'IRQ',
+      'NOR':'NOR','ARG':'ARG','ALG':'ALG','AUT':'AUT','JOR':'JOR',
+      'POR':'POR','COD':'COD','ENG':'ENG','CRO':'CRO','GHA':'GHA',
+      'PAN':'PAN','UZB':'UZB','COL':'COL','KSA':'KSA','DZA':'ALG'
+    }
+
+    let res
+    try {
+      res = await fetch('https://api.football-data.org/v4/competitions/WC/matches?status=FINISHED', {
+        headers: { 'X-Auth-Token': 'c244ba0a0bab4125a1ebfb59d247c219' }
+      })
+    } catch(e) {
+      log.innerHTML = '❌ Erro de conexão: ' + e.message
+      btn.disabled = false; btn.textContent = 'Buscar agora'; return
+    }
+
+    if (!res.ok) {
+      log.innerHTML = `❌ API retornou ${res.status}. Verifique o token.`
+      btn.disabled = false; btn.textContent = 'Buscar agora'; return
+    }
+
+    const json = await res.json()
+    const apiMatches = json.matches || []
+    const now = Date.now()
+    const lines = []
+    let updated = 0
+
+    for (const apiM of apiMatches) {
+      if (apiM.status !== 'FINISHED') continue
+      const score = apiM.score?.fullTime
+      if (score?.home == null || score?.away == null) continue
+
+      const apiHome = MAP[apiM.homeTeam?.tla] || apiM.homeTeam?.tla
+      const apiAway = MAP[apiM.awayTeam?.tla] || apiM.awayTeam?.tla
+      const local = MATCHES.find(m => m.home === apiHome && m.away === apiAway)
+      if (!local) { lines.push(`⚠️ Não mapeado: ${apiM.homeTeam?.tla} × ${apiM.awayTeam?.tla}`); continue }
+
+      const matchStart = new Date(local.dt).getTime()
+      if (now < matchStart + 2.5 * 60 * 60 * 1000) continue
+
+      const already = STATE.dbMatches[local.id]
+      if (already?.home_score === score.home && already?.away_score === score.away) continue
+
+      await sb.from('matches').upsert({ id: local.id, home_score: score.home, away_score: score.away, status: 'finished' })
+      await sb.rpc('calculate_points_for_match', { p_match_id: local.id, p_home_score: score.home, p_away_score: score.away })
+      STATE.dbMatches[local.id] = { id: local.id, home_score: score.home, away_score: score.away, status: 'finished' }
+
+      const home = TEAMS[local.home], away = TEAMS[local.away]
+      lines.push(`✅ ${home.flag} ${home.name} ${score.home}×${score.away} ${away.name} ${away.flag}`)
+      updated++
+    }
+
+    if (updated === 0 && lines.length === 0) {
+      log.innerHTML = '✅ Nenhum resultado novo para atualizar.'
+    } else {
+      log.innerHTML = `<strong>${updated} jogo(s) atualizado(s)</strong><br><br>` + lines.join('<br>')
+    }
+    btn.disabled = false; btn.textContent = 'Buscar agora'
+  }
+
   window.saveResult = async (matchId) => {
     const hv = parseInt($(`ah${matchId}`)?.value)
     const av = parseInt($(`aa${matchId}`)?.value)
