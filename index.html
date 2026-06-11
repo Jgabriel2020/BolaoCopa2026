@@ -48,6 +48,23 @@
     .match-card{transition:transform .15s ease}
     .match-card:hover{transform:translateY(-1px)}
     .glow{box-shadow:0 0 20px rgba(245,166,35,.3)}
+    /* Botões modernos */
+    .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border-radius:999px;font-weight:700;font-size:.8rem;letter-spacing:.06em;text-transform:uppercase;transition:all .2s ease;cursor:pointer;border:none;outline:none;white-space:nowrap}
+    .btn:disabled{opacity:.4;cursor:not-allowed}
+    .btn-gold{background:linear-gradient(135deg,#f5a623,#c4821a);color:#080f1a;padding:.6rem 1.4rem;box-shadow:0 4px 14px rgba(245,166,35,.35)}
+    .btn-gold:hover:not(:disabled){background:linear-gradient(135deg,#fbbf24,#d97706);box-shadow:0 6px 20px rgba(245,166,35,.5);transform:translateY(-1px)}
+    .btn-dark{background:#111e33;color:#f1f5f9;padding:.6rem 1.4rem;border:1px solid #1e3050}
+    .btn-dark:hover:not(:disabled){background:#1e3050;border-color:#f5a623;color:#f5a623;transform:translateY(-1px)}
+    .btn-ghost{background:transparent;color:#94a3b8;padding:.5rem 1rem;border:1px solid #1e3050}
+    .btn-ghost:hover:not(:disabled){border-color:#f5a623;color:#f5a623}
+    .btn-danger{background:linear-gradient(135deg,#ef4444,#b91c1c);color:#fff;padding:.5rem 1.2rem;box-shadow:0 4px 12px rgba(239,68,68,.3)}
+    .btn-danger:hover:not(:disabled){box-shadow:0 6px 18px rgba(239,68,68,.45);transform:translateY(-1px)}
+    .btn-sm{font-size:.72rem;padding:.4rem 1rem}
+    .btn-lg{font-size:.9rem;padding:.75rem 2rem}
+    .input-field{width:100%;background:#0d1b2e;border:1px solid #1e3050;border-radius:14px;padding:.65rem 1rem;color:#f1f5f9;font-size:.9rem;transition:border-color .2s,box-shadow .2s;outline:none}
+    .input-field::placeholder{color:#475569}
+    .input-field:focus{border-color:#f5a623;box-shadow:0 0 0 3px rgba(245,166,35,.15)}
+    .card{background:#111e33;border:1px solid #1e3050;border-radius:20px}
   </style>
 </head>
 <body>
@@ -228,7 +245,9 @@ let STATE = {
   dashPage: 0,          // página atual dentro do filtro
   dashPageSize: 4,      // jogos por página
   realtimeSubs: [],
-  dbMatches: {},        // match results from DB
+  dbMatches: {},
+  myBolaos: [],         // bolões do usuário
+  currentBolao: null,   // bolão ativo { id, name } ou null = geral
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -337,6 +356,8 @@ async function go(page) {
   } else if (page === 'results') {
     await loadDbMatches()
     body = pageResults()
+  } else if (page === 'bolaos') {
+    body = await pageBolaos()
   } else if (page === 'mypicks') {
     body = await pageMyPicks()
   } else if (page === 'admin') {
@@ -382,27 +403,34 @@ function header(active, uname, isAdmin) {
     {id:'results',    label:'Resultados', icon:'📊'},
     {id:'mypicks',    label:'Palpites',   icon:'🎯'},
     {id:'ranking',    label:'Ranking',    icon:'🏆'},
+    {id:'bolaos',     label:'Bolões',     icon:'🎱'},
     ...(isAdmin ? [{id:'admin', label:'Admin', icon:'⚙️'}] : []),
   ]
   const items = nav.map(n => `
     <button onclick="go('${n.id}')"
-      class="flex flex-col items-center gap-0.5 px-3 py-2 rounded-xl text-xs font-semibold transition-colors
+      class="flex flex-col items-center gap-0.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all
         ${active===n.id ? 'text-gold' : 'text-slate-500 hover:text-slate-300'}">
-      <span class="text-lg">${n.icon}</span>
+      <span class="text-lg leading-none">${n.icon}</span>
       <span class="hidden sm:block">${n.label}</span>
     </button>`).join('')
 
+  const bolaoTag = STATE.currentBolao
+    ? `<button onclick="go('bolaos')" class="hidden sm:flex items-center gap-1.5 bg-gold/10 border border-gold/30 text-gold text-xs font-bold px-3 py-1 rounded-full hover:bg-gold/20 transition-all">
+        🎱 <span class="max-w-[100px] truncate">${STATE.currentBolao.name}</span>
+       </button>` : ''
+
   return `
-  <header class="fixed top-0 left-0 right-0 z-40 bg-navy/90 backdrop-blur-lg border-b border-border">
-    <div class="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
-      <div class="flex items-center gap-2 cursor-pointer" onclick="go('dashboard')">
+  <header class="fixed top-0 left-0 right-0 z-40 bg-navy/95 backdrop-blur-xl border-b border-border">
+    <div class="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between gap-2">
+      <div class="flex items-center gap-2 cursor-pointer flex-shrink-0" onclick="go('dashboard')">
         <span class="text-xl">⚽</span>
         <span class="font-black text-white text-sm sm:text-base">Bolão <span class="text-gold">2026</span></span>
       </div>
-      <nav class="flex items-center gap-1">${items}</nav>
-      <div class="flex items-center gap-2">
-        <span class="hidden sm:block text-xs font-semibold text-white">${uname}</span>
-        <button onclick="logout()" class="text-xs text-slate-500 hover:text-red-400 transition-colors px-2 py-1 rounded hover:bg-red-900/20">Sair</button>
+      ${bolaoTag}
+      <nav class="flex items-center gap-0.5 overflow-x-auto no-scrollbar">${items}</nav>
+      <div class="flex items-center gap-2 flex-shrink-0">
+        <span class="hidden md:block text-xs font-bold text-white">${uname}</span>
+        <button onclick="logout()" class="btn btn-ghost btn-sm">Sair</button>
       </div>
     </div>
   </header>`
@@ -431,9 +459,8 @@ function pageAuth(mode) {
           class="w-full bg-navy border border-border rounded-xl px-4 py-2.5 text-white text-sm placeholder-slate-600
                  focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold transition-colors"/>
       </div>
-      <button type="submit" id="auth-btn"
-        class="mt-1 bg-gold hover:bg-gold-dark text-night font-bold py-2.5 rounded-xl transition-colors text-sm">
-        Entrar
+      <button type="submit" id="auth-btn" class="btn btn-gold btn-lg w-full mt-1">
+        ⚽ Entrar
       </button>
       <p id="auth-err" class="text-red-400 text-xs text-center hidden"></p>
     </form>`
@@ -452,9 +479,8 @@ function pageAuth(mode) {
           class="w-full bg-navy border border-border rounded-xl px-4 py-2.5 text-white text-sm placeholder-slate-600
                  focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold transition-colors"/>
       </div>
-      <button type="submit" id="auth-btn"
-        class="mt-1 bg-gold hover:bg-gold-dark text-night font-bold py-2.5 rounded-xl transition-colors text-sm">
-        Criar conta
+      <button type="submit" id="auth-btn" class="btn btn-gold btn-lg w-full mt-1">
+        🎯 Criar conta
       </button>
       <p id="auth-err" class="text-red-400 text-xs text-center hidden"></p>
     </form>`
@@ -692,17 +718,9 @@ function buildMatchList() {
 
   const pagination = totalPages > 1 ? `
     <div class="flex items-center justify-center gap-3 mt-6 mb-2">
-      <button onclick="setDashPage(${page-1})" ${page===0?'disabled':''}
-        class="px-4 py-2 rounded-xl text-sm font-bold border transition-all
-          ${page===0?'border-border text-slate-600 cursor-not-allowed':'border-border text-slate-400 hover:border-gold hover:text-gold'}">
-        ← Anterior
-      </button>
-      <span class="text-xs text-slate-500 font-semibold">${page+1} / ${totalPages}</span>
-      <button onclick="setDashPage(${page+1})" ${page===totalPages-1?'disabled':''}
-        class="px-4 py-2 rounded-xl text-sm font-bold border transition-all
-          ${page===totalPages-1?'border-border text-slate-600 cursor-not-allowed':'border-border text-slate-400 hover:border-gold hover:text-gold'}">
-        Próximo →
-      </button>
+      <button onclick="setDashPage(${page-1})" ${page===0?'disabled':''} class="btn btn-dark btn-sm">← Anterior</button>
+      <span class="text-xs text-slate-500 font-semibold px-2">${page+1} / ${totalPages}</span>
+      <button onclick="setDashPage(${page+1})" ${page===totalPages-1?'disabled':''} class="btn btn-dark btn-sm">Próximo →</button>
     </div>` : ''
 
   return cards + pagination
@@ -766,9 +784,8 @@ function buildCard(match) {
           class="score-inp bg-navy border border-border rounded-lg px-2 py-1.5 text-xl font-black text-white
                  focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold"/>
       </div>
-      <button onclick="savePred(${match.id})"
-        class="mt-1.5 text-xs font-bold bg-gold hover:bg-gold-dark text-night px-4 py-1.5 rounded-full transition-colors">
-        Salvar palpite
+      <button onclick="savePred(${match.id})" class="btn btn-gold btn-sm mt-1.5">
+        🎯 Salvar
       </button>`
   }
 
@@ -881,15 +898,164 @@ function bindInputs() {
 }
 
 // ═══════════════════════════════════════════════════════════════
+//  BOLÕES
+// ═══════════════════════════════════════════════════════════════
+async function pageBolaos() {
+  const uid = STATE.user.id
+
+  // Bolões que o usuário participa (como dono ou membro)
+  const { data: memberships } = await sb.from('bolao_members')
+    .select('bolao_id, bolaos(id, name, owner_id, invite_code)')
+    .eq('user_id', uid)
+
+  STATE.myBolaos = (memberships || []).map(m => m.bolaos).filter(Boolean)
+  const isOwnerCount = STATE.myBolaos.filter(b => b.owner_id === uid).length
+
+  const bolaoCards = STATE.myBolaos.length ? STATE.myBolaos.map(b => {
+    const isOwner = b.owner_id === uid
+    const active = STATE.currentBolao?.id === b.id
+    return `
+    <div class="card p-5 flex items-center gap-4 transition-all ${active ? 'border-gold/60 glow' : ''}">
+      <div class="w-12 h-12 rounded-2xl bg-gold/10 border border-gold/20 flex items-center justify-center text-2xl flex-shrink-0">🎱</div>
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center gap-2 flex-wrap">
+          <span class="font-black text-white">${b.name}</span>
+          ${isOwner ? '<span class="text-xs bg-gold/20 text-gold px-2 py-0.5 rounded-full font-bold">Dono</span>' : ''}
+          ${active ? '<span class="text-xs bg-green-900/50 text-green-400 px-2 py-0.5 rounded-full font-bold">● Ativo</span>' : ''}
+        </div>
+        <div class="flex items-center gap-2 mt-1">
+          <span class="text-xs text-slate-500 font-mono bg-navy px-2 py-0.5 rounded-lg border border-border">${b.invite_code}</span>
+          <button onclick="copyCode('${b.invite_code}')" class="text-xs text-gold hover:text-yellow-400 transition-colors font-semibold">Copiar código</button>
+        </div>
+      </div>
+      <div class="flex flex-col gap-2 flex-shrink-0">
+        <button onclick="selectBolao('${b.id}','${b.name}')" class="btn btn-gold btn-sm">${active ? '✓ Ativo' : 'Selecionar'}</button>
+        ${isOwner ? `<button onclick="deleteBolao('${b.id}')" class="btn btn-danger btn-sm">Excluir</button>` : `<button onclick="leaveBolao('${b.id}')" class="btn btn-ghost btn-sm">Sair</button>`}
+      </div>
+    </div>`
+  }).join('') : `
+    <div class="text-center py-10 text-slate-500">
+      <div class="text-4xl mb-3">🎱</div>
+      <p class="font-semibold">Você ainda não participa de nenhum bolão.</p>
+      <p class="text-sm mt-1">Crie um ou entre com um código de convite.</p>
+    </div>`
+
+  return `
+  <div class="max-w-2xl mx-auto px-4 py-6">
+    <div class="flex items-center justify-between mb-6">
+      <div>
+        <h1 class="text-2xl font-black text-white">Meus Bolões</h1>
+        <p class="text-xs text-slate-400 mt-0.5">${STATE.myBolaos.length}/3 bolões · ranking separado por grupo</p>
+      </div>
+      ${STATE.currentBolao ? `<button onclick="selectBolao(null,null)" class="btn btn-ghost btn-sm">✕ Ver geral</button>` : ''}
+    </div>
+
+    <!-- Criar bolão -->
+    ${isOwnerCount < 3 ? `
+    <div class="card p-5 mb-4">
+      <h2 class="font-black text-white mb-3 flex items-center gap-2"><span class="text-gold">+</span> Criar novo bolão</h2>
+      <div class="flex gap-3">
+        <input id="new-bolao-name" class="input-field flex-1" placeholder="Nome do bolão (ex: Família, Trabalho...)" maxlength="30"/>
+        <button onclick="createBolao()" class="btn btn-gold">Criar</button>
+      </div>
+    </div>` : `
+    <div class="card p-4 mb-4 border-yellow-900/50 bg-yellow-900/10 text-center">
+      <p class="text-yellow-400 text-sm font-bold">⚠️ Limite de 3 bolões como dono atingido.</p>
+    </div>`}
+
+    <!-- Entrar com código -->
+    <div class="card p-5 mb-6">
+      <h2 class="font-black text-white mb-3 flex items-center gap-2"><span class="text-blue-400">→</span> Entrar com código</h2>
+      <div class="flex gap-3">
+        <input id="join-code" class="input-field flex-1 font-mono uppercase" placeholder="CÓDIGO DO BOLÃO" maxlength="8"/>
+        <button onclick="joinBolao()" class="btn btn-dark">Entrar</button>
+      </div>
+    </div>
+
+    <!-- Lista de bolões -->
+    <div class="flex flex-col gap-3">${bolaoCards}</div>
+  </div>`
+}
+
+async function createBolao() {
+  const name = $('new-bolao-name')?.value.trim()
+  if (!name) { toast('Digite um nome para o bolão.', 'error'); return }
+
+  const uid = STATE.user.id
+  const code = Math.random().toString(36).substring(2,6).toUpperCase() + Math.random().toString(36).substring(2,6).toUpperCase()
+
+  const { data: b, error } = await sb.from('bolaos')
+    .insert({ name, owner_id: uid, invite_code: code.substring(0,8) })
+    .select().single()
+  if (error) { toast('Erro: ' + error.message, 'error'); return }
+
+  await sb.from('bolao_members').insert({ bolao_id: b.id, user_id: uid })
+  toast('Bolão "' + name + '" criado! 🎱', 'success')
+  go('bolaos')
+}
+
+async function joinBolao() {
+  const code = $('join-code')?.value.trim().toUpperCase()
+  if (!code) { toast('Digite o código do bolão.', 'error'); return }
+
+  const { data: b, error } = await sb.from('bolaos').select('*').eq('invite_code', code).maybeSingle()
+  if (error || !b) { toast('Código não encontrado.', 'error'); return }
+
+  const uid = STATE.user.id
+  const { data: already } = await sb.from('bolao_members').select('bolao_id').eq('bolao_id', b.id).eq('user_id', uid).maybeSingle()
+  if (already) { toast('Você já está neste bolão!', 'warning'); return }
+
+  const { error: e2 } = await sb.from('bolao_members').insert({ bolao_id: b.id, user_id: uid })
+  if (e2) { toast('Erro ao entrar: ' + e2.message, 'error'); return }
+
+  toast('Entrou no bolão "' + b.name + '"! 🎉', 'success')
+  selectBolao(b.id, b.name)
+}
+
+function selectBolao(id, name) {
+  STATE.currentBolao = id ? { id, name } : null
+  go('ranking')
+}
+
+async function deleteBolao(id) {
+  await sb.from('bolaos').delete().eq('id', id)
+  if (STATE.currentBolao?.id === id) STATE.currentBolao = null
+  toast('Bolão excluído.', 'success')
+  go('bolaos')
+}
+
+async function leaveBolao(id) {
+  await sb.from('bolao_members').delete().eq('bolao_id', id).eq('user_id', STATE.user.id)
+  if (STATE.currentBolao?.id === id) STATE.currentBolao = null
+  toast('Você saiu do bolão.', 'success')
+  go('bolaos')
+}
+
+function copyCode(code) {
+  navigator.clipboard.writeText(code).then(() => toast('Código copiado: ' + code, 'success'))
+}
+
+// ═══════════════════════════════════════════════════════════════
 //  RANKING
 // ═══════════════════════════════════════════════════════════════
 async function loadRanking() {
-  const { data } = await sb.from('profiles')
-    .select('id,username,total_points')
-    .order('total_points', { ascending: false })
-    .limit(200)
+  const wrap = $('rank-wrap')
+  if (!wrap) return
 
-  const { data: preds } = await sb.from('predictions').select('user_id,home_score,away_score,points')
+  // Se bolão ativo, busca apenas membros dele
+  let profileIds = null
+  if (STATE.currentBolao) {
+    const { data: members } = await sb.from('bolao_members')
+      .select('user_id').eq('bolao_id', STATE.currentBolao.id)
+    profileIds = (members || []).map(m => m.user_id)
+  }
+
+  let query = sb.from('profiles').select('id,username,total_points').order('total_points', { ascending: false }).limit(200)
+  if (profileIds) query = query.in('id', profileIds.length ? profileIds : ['00000000-0000-0000-0000-000000000000'])
+
+  const { data } = await query
+
+  const { data: preds } = await sb.from('predictions').select('user_id,points')
   const counts = {}
   if (preds) preds.forEach(p => {
     if (!counts[p.user_id]) counts[p.user_id] = { total:0, exact:0, partial:0 }
@@ -899,7 +1065,7 @@ async function loadRanking() {
   })
 
   const rows = !data?.length
-    ? '<div class="text-center py-16"><div class="text-5xl mb-4">🏆</div><p class="text-slate-400">Ranking ainda vazio!</p></div>'
+    ? '<div class="text-center py-16"><div class="text-5xl mb-4">🏆</div><p class="text-slate-400">Nenhum participante ainda.</p></div>'
     : data.map((u,i) => {
         const rank = i+1
         const isMe = u.id === STATE.user?.id
@@ -908,7 +1074,7 @@ async function loadRanking() {
         return `
         <div class="flex items-center gap-3 px-4 py-3 rounded-2xl border transition-all
           ${isMe ? 'bg-gold/10 border-gold/40 glow' : 'bg-card border-border hover:border-slate-600'}">
-          <div class="w-10 flex items-center justify-center text-2xl">${typeof medal==='string'&&medal.includes('°')?medal:medal}</div>
+          <div class="w-10 flex items-center justify-center text-2xl">${medal}</div>
           <div class="flex-1 min-w-0">
             <div class="flex items-center gap-2">
               <span class="font-bold text-sm text-white truncate">${u.username}</span>
@@ -927,13 +1093,16 @@ async function loadRanking() {
         </div>`
       }).join('')
 
-  const wrap = $('rank-wrap')
-  if (!wrap) return
+  const title = STATE.currentBolao ? `🎱 ${STATE.currentBolao.name}` : '🏆 Ranking Geral'
+  const subtitle = STATE.currentBolao
+    ? `${data?.length||0} participantes · <button onclick="selectBolao(null,null)" class="text-gold hover:underline">Ver ranking geral</button>`
+    : `Atualizado em tempo real · ${data?.length||0} participantes`
+
   wrap.innerHTML = `
     <div class="bg-gradient-to-r from-gold/20 to-yellow-900/20 border border-gold/30 rounded-2xl p-5 mb-6 text-center">
-      <div class="text-4xl mb-2">🏆</div>
-      <h2 class="text-xl font-black text-white">Ranking Geral</h2>
-      <p class="text-xs text-slate-400 mt-1">Atualizado em tempo real · ${data?.length||0} participantes</p>
+      <div class="text-4xl mb-2">${STATE.currentBolao ? '🎱' : '🏆'}</div>
+      <h2 class="text-xl font-black text-white">${title}</h2>
+      <p class="text-xs text-slate-400 mt-1">${subtitle}</p>
     </div>
     <div class="flex items-center gap-4 mb-4 px-1 text-xs text-slate-500">
       <span class="flex items-center gap-1"><span class="badge-3 rounded px-1.5 py-0.5 text-white font-bold">3pts</span> Placar exato</span>
@@ -942,8 +1111,7 @@ async function loadRanking() {
     </div>
     <div class="flex flex-col gap-2">${rows}</div>`
 
-  // Realtime ranking
-  const ch = sb.channel('ranking-rt')
+  const ch = sb.channel('ranking-rt-' + (STATE.currentBolao?.id||'geral'))
     .on('postgres_changes', { event:'UPDATE', schema:'public', table:'profiles' }, () => loadRanking())
     .subscribe()
   STATE.realtimeSubs.push(ch)
