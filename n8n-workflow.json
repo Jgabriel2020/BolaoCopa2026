@@ -36,7 +36,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Parser do widget api-futebol.com.br\nconst html = $input.first().json.data || $input.first().json.body || String($input.first().json) || '';\n\nconst WIDGET_MAP = {\n  'MEX':'MEX','AFS':'RSA','COR':'KOR','TCH':'CZE','CAN':'CAN','BOS':'BIH',\n  'CAT':'QAT','SUI':'SUI','BRA':'BRA','MAR':'MAR','HAI':'HAI','ESC':'SCO',\n  'EUA':'USA','PAR':'PAR','AUS':'AUS','TUR':'TUR','ALE':'GER','CUR':'CUW',\n  'CDM':'CIV','EQU':'ECU','HOL':'NED','JAP':'JPN','SUE':'SWE','TUN':'TUN',\n  'BEL':'BEL','EGI':'EGY','IRA':'IRN','NZL':'NZL','ESP':'ESP','CAB':'CPV',\n  'ARA':'KSA','URU':'URU','FRA':'FRA','SEN':'SEN','IRQ':'IRQ','NOR':'NOR',\n  'ARG':'ARG','AGL':'ALG','AUT':'AUT','JOR':'JOR','POR':'POR','RDC':'COD',\n  'UZB':'UZB','COL':'COL','ING':'ENG','CRO':'CRO','GAN':'GHA','PAN':'PAN',\n  'RSA':'RSA','KOR':'KOR','CZE':'CZE','BIH':'BIH','QAT':'QAT','SCO':'SCO',\n  'USA':'USA','GER':'GER','CUW':'CUW','CIV':'CIV','ECU':'ECU','NED':'NED',\n  'JPN':'JPN','SWE':'SWE','EGY':'EGY','IRN':'IRN','CPV':'CPV','KSA':'KSA',\n  'ALG':'ALG','COD':'COD','ENG':'ENG','GHA':'GHA'\n};\n\nconst MATCHES = [\n  {id:1,home:'MEX',away:'RSA'},{id:2,home:'KOR',away:'CZE'},{id:3,home:'CAN',away:'BIH'},\n  {id:4,home:'USA',away:'PAR'},{id:5,home:'QAT',away:'SUI'},{id:6,home:'BRA',away:'MAR'},\n  {id:7,home:'HAI',away:'SCO'},{id:8,home:'AUS',away:'TUR'},{id:9,home:'GER',away:'CUW'},\n  {id:10,home:'CIV',away:'ECU'},{id:11,home:'NED',away:'JPN'},{id:12,home:'SWE',away:'TUN'},\n  {id:13,home:'ESP',away:'CPV'},{id:14,home:'BEL',away:'EGY'},{id:15,home:'KSA',away:'URU'},\n  {id:16,home:'IRN',away:'NZL'},{id:17,home:'FRA',away:'SEN'},{id:18,home:'IRQ',away:'NOR'},\n  {id:19,home:'ARG',away:'ALG'},{id:20,home:'AUT',away:'JOR'},{id:21,home:'POR',away:'COD'},\n  {id:22,home:'ENG',away:'CRO'},{id:23,home:'GHA',away:'PAN'},{id:24,home:'UZB',away:'COL'},\n  {id:25,home:'CZE',away:'RSA'},{id:26,home:'SUI',away:'BIH'},{id:27,home:'CAN',away:'QAT'},\n  {id:28,home:'MEX',away:'KOR'},{id:29,home:'USA',away:'AUS'},{id:30,home:'SCO',away:'MAR'},\n  {id:31,home:'BRA',away:'HAI'},{id:32,home:'TUR',away:'PAR'},{id:33,home:'NED',away:'SWE'},\n  {id:34,home:'GER',away:'CIV'},{id:35,home:'ECU',away:'CUW'},{id:36,home:'TUN',away:'JPN'},\n  {id:37,home:'ESP',away:'KSA'},{id:38,home:'BEL',away:'IRN'},{id:39,home:'URU',away:'CPV'},\n  {id:40,home:'NZL',away:'EGY'},{id:41,home:'ARG',away:'AUT'},{id:42,home:'FRA',away:'IRQ'},\n  {id:43,home:'NOR',away:'SEN'},{id:44,home:'JOR',away:'ALG'},{id:45,home:'POR',away:'UZB'},\n  {id:46,home:'ENG',away:'GHA'},{id:47,home:'PAN',away:'CRO'},{id:48,home:'COL',away:'COD'},\n  {id:49,home:'MEX',away:'CZE'},{id:50,home:'RSA',away:'KOR'},{id:51,home:'SUI',away:'CAN'},\n  {id:52,home:'BIH',away:'QAT'},{id:53,home:'SCO',away:'BRA'},{id:54,home:'MAR',away:'HAI'},\n  {id:55,home:'TUR',away:'USA'},{id:56,home:'PAR',away:'AUS'},{id:57,home:'ECU',away:'GER'},\n  {id:58,home:'CUW',away:'CIV'},{id:59,home:'JPN',away:'SWE'},{id:60,home:'TUN',away:'NED'},\n  {id:61,home:'NOR',away:'FRA'},{id:62,home:'SEN',away:'IRQ'},{id:63,home:'CPV',away:'KSA'},\n  {id:64,home:'URU',away:'ESP'},{id:65,home:'EGY',away:'IRN'},{id:66,home:'NZL',away:'BEL'},\n  {id:67,home:'PAN',away:'ENG'},{id:68,home:'CRO',away:'GHA'},{id:69,home:'COL',away:'POR'},\n  {id:70,home:'COD',away:'UZB'},{id:71,home:'JOR',away:'ARG'},{id:72,home:'ALG',away:'AUT'}\n];\n\nconst toUpdate = [];\n\n// Regex que captura: span_home → score1 → score2 → span_away\n// Usa limites de distância para não cruzar entre jogos diferentes\n// Estrutura real: <span>CODE</span> ... img ... </div> ... score1 ... SVG_X ... score2 ... img ... <span>CODE</span>\nconst pattern = /<span>([A-Z]{2,4})<\\/span>[\\s\\S]{1,500}?<div class=\"text-xl text-center\">(\\d*)<\\/div>[\\s\\S]{1,700}?<div class=\"text-xl text-center\">(\\d*)<\\/div>[\\s\\S]{1,500}?<span>([A-Z]{2,4})<\\/span>/g;\n\nlet m;\nwhile ((m = pattern.exec(html)) !== null) {\n  const widgetHome = m[1];\n  const scoreHome  = m[2];\n  const scoreAway  = m[3];\n  const widgetAway = m[4];\n\n  if (scoreHome === '' || scoreAway === '') continue;\n\n  const homeCode = WIDGET_MAP[widgetHome];\n  const awayCode = WIDGET_MAP[widgetAway];\n  if (!homeCode || !awayCode) {\n    console.log('Abreviação não mapeada:', widgetHome, widgetAway);\n    continue;\n  }\n\n  const localMatch = MATCHES.find(x => x.home === homeCode && x.away === awayCode);\n  if (!localMatch) {\n    console.log('Jogo não encontrado:', homeCode, 'x', awayCode);\n    continue;\n  }\n\n  if (!toUpdate.find(u => u.match_id === localMatch.id)) {\n    toUpdate.push({ match_id: localMatch.id, home_score: parseInt(scoreHome), away_score: parseInt(scoreAway) });\n    console.log('Encontrado:', homeCode, parseInt(scoreHome), 'x', parseInt(scoreAway), awayCode, '(id', localMatch.id + ')');\n  }\n}\n\nconsole.log('Total jogos para atualizar:', toUpdate.length);\n\nif (toUpdate.length === 0) {\n  return [{ json: { debug: true, found: 0 } }];\n}\n\nreturn toUpdate.map(item => ({ json: item }));"
+        "jsCode": "// Parser do widget api-futebol.com.br\nconst html = $input.first().json.data || $input.first().json.body || String($input.first().json) || '';\n\nconst WIDGET_MAP = {\n  'MEX':'MEX','AFS':'RSA','COR':'KOR','TCH':'CZE','CAN':'CAN','BOS':'BIH',\n  'CAT':'QAT','SUI':'SUI','BRA':'BRA','MAR':'MAR','HAI':'HAI','ESC':'SCO',\n  'EUA':'USA','PAR':'PAR','AUS':'AUS','TUR':'TUR','ALE':'GER','CUR':'CUW',\n  'CDM':'CIV','EQU':'ECU','HOL':'NED','JAP':'JPN','SUE':'SWE','TUN':'TUN',\n  'BEL':'BEL','EGI':'EGY','IRA':'IRN','NZL':'NZL','ESP':'ESP','CAB':'CPV',\n  'ARA':'KSA','URU':'URU','FRA':'FRA','SEN':'SEN','IRQ':'IRQ','NOR':'NOR',\n  'ARG':'ARG','AGL':'ALG','AUT':'AUT','JOR':'JOR','POR':'POR','RDC':'COD',\n  'UZB':'UZB','COL':'COL','ING':'ENG','CRO':'CRO','GAN':'GHA','PAN':'PAN',\n  'RSA':'RSA','KOR':'KOR','CZE':'CZE','BIH':'BIH','QAT':'QAT','SCO':'SCO',\n  'USA':'USA','GER':'GER','CUW':'CUW','CIV':'CIV','ECU':'ECU','NED':'NED',\n  'JPN':'JPN','SWE':'SWE','EGY':'EGY','IRN':'IRN','CPV':'CPV','KSA':'KSA',\n  'ALG':'ALG','COD':'COD','ENG':'ENG','GHA':'GHA'\n};\n\nconst MATCHES = [\n  {id:1,home:'MEX',away:'RSA'},{id:2,home:'KOR',away:'CZE'},{id:3,home:'CAN',away:'BIH'},\n  {id:4,home:'USA',away:'PAR'},{id:5,home:'QAT',away:'SUI'},{id:6,home:'BRA',away:'MAR'},\n  {id:7,home:'HAI',away:'SCO'},{id:8,home:'AUS',away:'TUR'},{id:9,home:'GER',away:'CUW'},\n  {id:10,home:'CIV',away:'ECU'},{id:11,home:'NED',away:'JPN'},{id:12,home:'SWE',away:'TUN'},\n  {id:13,home:'ESP',away:'CPV'},{id:14,home:'BEL',away:'EGY'},{id:15,home:'KSA',away:'URU'},\n  {id:16,home:'IRN',away:'NZL'},{id:17,home:'FRA',away:'SEN'},{id:18,home:'IRQ',away:'NOR'},\n  {id:19,home:'ARG',away:'ALG'},{id:20,home:'AUT',away:'JOR'},{id:21,home:'POR',away:'COD'},\n  {id:22,home:'ENG',away:'CRO'},{id:23,home:'GHA',away:'PAN'},{id:24,home:'UZB',away:'COL'},\n  {id:25,home:'CZE',away:'RSA'},{id:26,home:'SUI',away:'BIH'},{id:27,home:'CAN',away:'QAT'},\n  {id:28,home:'MEX',away:'KOR'},{id:29,home:'USA',away:'AUS'},{id:30,home:'SCO',away:'MAR'},\n  {id:31,home:'BRA',away:'HAI'},{id:32,home:'TUR',away:'PAR'},{id:33,home:'NED',away:'SWE'},\n  {id:34,home:'GER',away:'CIV'},{id:35,home:'ECU',away:'CUW'},{id:36,home:'TUN',away:'JPN'},\n  {id:37,home:'ESP',away:'KSA'},{id:38,home:'BEL',away:'IRN'},{id:39,home:'URU',away:'CPV'},\n  {id:40,home:'NZL',away:'EGY'},{id:41,home:'ARG',away:'AUT'},{id:42,home:'FRA',away:'IRQ'},\n  {id:43,home:'NOR',away:'SEN'},{id:44,home:'JOR',away:'ALG'},{id:45,home:'POR',away:'UZB'},\n  {id:46,home:'ENG',away:'GHA'},{id:47,home:'PAN',away:'CRO'},{id:48,home:'COL',away:'COD'},\n  {id:49,home:'MEX',away:'CZE'},{id:50,home:'RSA',away:'KOR'},{id:51,home:'SUI',away:'CAN'},\n  {id:52,home:'BIH',away:'QAT'},{id:53,home:'SCO',away:'BRA'},{id:54,home:'MAR',away:'HAI'},\n  {id:55,home:'TUR',away:'USA'},{id:56,home:'PAR',away:'AUS'},{id:57,home:'ECU',away:'GER'},\n  {id:58,home:'CUW',away:'CIV'},{id:59,home:'JPN',away:'SWE'},{id:60,home:'TUN',away:'NED'},\n  {id:61,home:'NOR',away:'FRA'},{id:62,home:'SEN',away:'IRQ'},{id:63,home:'CPV',away:'KSA'},\n  {id:64,home:'URU',away:'ESP'},{id:65,home:'EGY',away:'IRN'},{id:66,home:'NZL',away:'BEL'},\n  {id:67,home:'PAN',away:'ENG'},{id:68,home:'CRO',away:'GHA'},{id:69,home:'COL',away:'POR'},\n  {id:70,home:'COD',away:'UZB'},{id:71,home:'JOR',away:'ARG'},{id:72,home:'ALG',away:'AUT'}\n];\n\nconst toUpdate = [];\n\nconst pattern = /<span>([A-Z]{2,4})<\\/span>[\\s\\S]{1,500}?<div class=\"text-xl text-center\">(\\d*)<\\/div>[\\s\\S]{1,700}?<div class=\"text-xl text-center\">(\\d*)<\\/div>[\\s\\S]{1,500}?<span>([A-Z]{2,4})<\\/span>/g;\n\nlet m;\nwhile ((m = pattern.exec(html)) !== null) {\n  const widgetHome = m[1];\n  const scoreHome  = m[2];\n  const scoreAway  = m[3];\n  const widgetAway = m[4];\n\n  if (scoreHome === '' || scoreAway === '') continue;\n\n  const homeCode = WIDGET_MAP[widgetHome];\n  const awayCode = WIDGET_MAP[widgetAway];\n  if (!homeCode || !awayCode) continue;\n\n  const localMatch = MATCHES.find(x => x.home === homeCode && x.away === awayCode);\n  if (!localMatch) continue;\n\n  if (!toUpdate.find(u => u.id === localMatch.id)) {\n    toUpdate.push({\n      id: localMatch.id,\n      home_score: parseInt(scoreHome),\n      away_score: parseInt(scoreAway),\n      label: homeCode + ' ' + scoreHome + 'x' + scoreAway + ' ' + awayCode\n    });\n    console.log('Placar encontrado:', homeCode, scoreHome, 'x', scoreAway, awayCode);\n  }\n}\n\nconsole.log('Total para atualizar:', toUpdate.length);\n\nif (toUpdate.length === 0) {\n  return [{ json: { debug: true, found: 0 } }];\n}\n\nreturn toUpdate.map(item => ({ json: item }));"
       },
       "id": "node-code",
       "name": "Parsear HTML e Extrair Placares",
@@ -56,7 +56,7 @@
           "conditions": [
             {
               "id": "cond-1",
-              "leftValue": "={{ $json.match_id }}",
+              "leftValue": "={{ $json.id }}",
               "rightValue": 0,
               "operator": {
                 "type": "number",
@@ -76,27 +76,36 @@
     },
     {
       "parameters": {
-        "method": "PATCH",
-        "url": "=https://zmxwhjmgsyzcuovepqss.supabase.co/rest/v1/matches?id=eq.{{ $json.match_id }}",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpteHdoam1nc3l6Y3VvdmVwcXNzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODExMjk5NzMsImV4cCI6MjA5NjcwNTk3M30.429hD8d6_uksGL125V9XVvec7ySPtc3RqWxhEcWL4po" },
-            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpteHdoam1nc3l6Y3VvdmVwcXNzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODExMjk5NzMsImV4cCI6MjA5NjcwNTk3M30.429hD8d6_uksGL125V9XVvec7ySPtc3RqWxhEcWL4po" },
-            { "name": "Content-Type", "value": "application/json" },
-            { "name": "Prefer", "value": "return=minimal" }
+        "operation": "update",
+        "tableId": "matches",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $json.id }}"
+            }
           ]
         },
-        "sendBody": true,
-        "contentType": "json",
-        "body": "={\n  \"home_score\": {{ $json.home_score }},\n  \"away_score\": {{ $json.away_score }},\n  \"status\": \"finished\"\n}",
-        "options": {}
+        "fieldsUi": {
+          "fieldValues": [
+            { "fieldId": "home_score", "fieldValue": "={{ $json.home_score }}" },
+            { "fieldId": "away_score", "fieldValue": "={{ $json.away_score }}" },
+            { "fieldId": "status", "fieldValue": "finished" }
+          ]
+        }
       },
-      "id": "node-patch",
+      "id": "node-supabase-update",
       "name": "Atualizar Placar no Supabase",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [1120, 220]
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [1120, 220],
+      "credentials": {
+        "supabaseApi": {
+          "id": "SUPABASE_CRED_ID",
+          "name": "Supabase account"
+        }
+      }
     },
     {
       "parameters": {
@@ -111,8 +120,8 @@
           ]
         },
         "sendBody": true,
-        "contentType": "json",
-        "body": "={\n  \"p_match_id\": {{ $json.match_id }},\n  \"p_home_score\": {{ $json.home_score }},\n  \"p_away_score\": {{ $json.away_score }}\n}",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ p_match_id: $json.id, p_home_score: $json.home_score, p_away_score: $json.away_score }) }}",
         "options": {}
       },
       "id": "node-rpc",
@@ -147,5 +156,5 @@
   "tags": [],
   "triggerCount": 1,
   "updatedAt": "2026-06-11T00:00:00.000Z",
-  "versionId": "4"
+  "versionId": "5"
 }
