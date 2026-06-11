@@ -1354,12 +1354,15 @@ async function pageAdmin() {
     </div>
 
     <!-- Botão buscar da API -->
-    <div class="card p-4 mb-6 flex items-center justify-between gap-4">
-      <div>
-        <p class="font-bold text-white text-sm">🌐 Buscar resultados da API</p>
-        <p class="text-xs text-slate-400 mt-0.5">Busca jogos finalizados na football-data.org e atualiza automaticamente.</p>
+    <div class="card p-4 mb-6">
+      <p class="font-bold text-white text-sm mb-1">🌐 Buscar resultados via N8N</p>
+      <p class="text-xs text-slate-400 mb-3">Cole a URL do Webhook do seu workflow N8N para buscar resultados automaticamente.</p>
+      <div class="flex gap-2">
+        <input id="n8n-webhook-url" class="input-field flex-1 font-mono text-xs"
+          placeholder="https://n8n.jbrenno.cloud/webhook/buscar-resultados"
+          value="${localStorage.getItem('n8n_webhook')||''}"/>
+        <button onclick="fetchFromApi()" id="api-fetch-btn" class="btn btn-gold flex-shrink-0">Buscar agora</button>
       </div>
-      <button onclick="fetchFromApi()" id="api-fetch-btn" class="btn btn-gold flex-shrink-0">Buscar agora</button>
     </div>
     <div id="api-fetch-log" class="hidden card p-4 mb-6 text-xs font-mono text-slate-300 leading-relaxed"></div>
 
@@ -1387,57 +1390,32 @@ function bindAdmin() {
       'PAN':'PAN','UZB':'UZB','COL':'COL','KSA':'KSA','DZA':'ALG'
     }
 
+    const webhookUrl = $('n8n-webhook-url')?.value.trim()
+    if (!webhookUrl) {
+      log.innerHTML = '❌ Cole a URL do webhook do N8N acima.'
+      btn.disabled = false; btn.textContent = 'Buscar agora'; return
+    }
+
+    // Dispara o workflow N8N via webhook e aguarda a resposta com os jogos
     let res
     try {
-      res = await fetch('https://api.football-data.org/v4/competitions/WC/matches?status=FINISHED', {
-        headers: { 'X-Auth-Token': 'c244ba0a0bab4125a1ebfb59d247c219' }
-      })
+      res = await fetch(webhookUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })
     } catch(e) {
-      log.innerHTML = '❌ Erro de conexão: ' + e.message
+      log.innerHTML = '❌ Não foi possível conectar ao N8N: ' + e.message
       btn.disabled = false; btn.textContent = 'Buscar agora'; return
     }
 
     if (!res.ok) {
-      log.innerHTML = `❌ API retornou ${res.status}. Verifique o token.`
+      log.innerHTML = `❌ N8N retornou ${res.status}. Verifique se o workflow está ativo.`
       btn.disabled = false; btn.textContent = 'Buscar agora'; return
     }
 
-    const json = await res.json()
-    const apiMatches = json.matches || []
-    const now = Date.now()
-    const lines = []
-    let updated = 0
-
-    for (const apiM of apiMatches) {
-      if (apiM.status !== 'FINISHED') continue
-      const score = apiM.score?.fullTime
-      if (score?.home == null || score?.away == null) continue
-
-      const apiHome = MAP[apiM.homeTeam?.tla] || apiM.homeTeam?.tla
-      const apiAway = MAP[apiM.awayTeam?.tla] || apiM.awayTeam?.tla
-      const local = MATCHES.find(m => m.home === apiHome && m.away === apiAway)
-      if (!local) { lines.push(`⚠️ Não mapeado: ${apiM.homeTeam?.tla} × ${apiM.awayTeam?.tla}`); continue }
-
-      const matchStart = new Date(local.dt).getTime()
-      if (now < matchStart + 2.5 * 60 * 60 * 1000) continue
-
-      const already = STATE.dbMatches[local.id]
-      if (already?.home_score === score.home && already?.away_score === score.away) continue
-
-      await sb.from('matches').upsert({ id: local.id, home_score: score.home, away_score: score.away, status: 'finished' })
-      await sb.rpc('calculate_points_for_match', { p_match_id: local.id, p_home_score: score.home, p_away_score: score.away })
-      STATE.dbMatches[local.id] = { id: local.id, home_score: score.home, away_score: score.away, status: 'finished' }
-
-      const home = TEAMS[local.home], away = TEAMS[local.away]
-      lines.push(`✅ ${home.flag} ${home.name} ${score.home}×${score.away} ${away.name} ${away.flag}`)
-      updated++
-    }
-
-    if (updated === 0 && lines.length === 0) {
-      log.innerHTML = '✅ Nenhum resultado novo para atualizar.'
-    } else {
-      log.innerHTML = `<strong>${updated} jogo(s) atualizado(s)</strong><br><br>` + lines.join('<br>')
-    }
+    localStorage.setItem('n8n_webhook', webhookUrl)
+    log.innerHTML = '✅ Workflow N8N disparado! Atualizando dados...'
+    await new Promise(r => setTimeout(r, 3000)) // aguarda N8N processar
+    await loadDbMatches()
+    const total = Object.values(STATE.dbMatches).filter(m => m.home_score != null).length
+    log.innerHTML = `✅ N8N executou com sucesso.<br>Total de jogos com resultado no banco: <strong>${total}</strong>`
     btn.disabled = false; btn.textContent = 'Buscar agora'
   }
 
