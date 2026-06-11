@@ -56,8 +56,8 @@
 <div id="toasts" class="fixed bottom-6 right-6 z-50 flex flex-col gap-2 pointer-events-none"></div>
 
 <!-- App -->
-<div id="app" class="flex items-center justify-center min-h-screen">
-  <div class="spin"></div>
+<div id="app" class="min-h-screen">
+  <div class="flex items-center justify-center min-h-screen"><div class="spin"></div></div>
 </div>
 
 <script>
@@ -338,7 +338,7 @@ async function go(page) {
     body = await pageAdmin()
   }
 
-  APP().innerHTML = header(page, uname, isAdmin) + `<main>${body}</main>`
+  APP().innerHTML = header(page, uname, isAdmin) + `<main class="pt-14">${body}</main>`
   bindHeader()
 
   if (page === 'dashboard') bindDashboard()
@@ -387,8 +387,8 @@ function header(active, uname, isAdmin) {
     </button>`).join('')
 
   return `
-  <header class="sticky top-0 z-40 bg-navy/90 backdrop-blur-lg border-b border-border">
-    <div class="max-w-3xl mx-auto px-4 h-14 flex items-center justify-between">
+  <header class="fixed top-0 left-0 right-0 z-40 bg-navy/90 backdrop-blur-lg border-b border-border">
+    <div class="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
       <div class="flex items-center gap-2 cursor-pointer" onclick="go('dashboard')">
         <span class="text-xl">⚽</span>
         <span class="font-black text-white text-sm sm:text-base">Bolão <span class="text-gold">2026</span></span>
