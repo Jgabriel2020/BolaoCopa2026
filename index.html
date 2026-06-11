@@ -493,33 +493,22 @@ async function handleLogin(e) {
   const username = $('f-user').value.trim()
   const password = $('f-pass').value
 
-  // Busca o email pelo username
+  // Busca o email pelo username direto da tabela profiles
   const { data: profile, error: profileErr } = await sb
     .from('profiles')
-    .select('id')
+    .select('id, email')
     .eq('username', username)
     .maybeSingle()
 
-  if (profileErr || !profile) {
+  if (profileErr || !profile || !profile.email) {
     err.textContent = 'Usuário não encontrado.'
     err.classList.remove('hidden')
     btn.disabled = false; btn.textContent = 'Entrar'
     return
   }
 
-  // Busca o email do auth.users via RPC
-  const { data: emailData, error: emailErr } = await sb
-    .rpc('get_email_by_id', { p_id: profile.id })
-
-  if (emailErr || !emailData) {
-    err.textContent = 'Erro ao autenticar. Tente novamente.'
-    err.classList.remove('hidden')
-    btn.disabled = false; btn.textContent = 'Entrar'
-    return
-  }
-
   const { data, error } = await sb.auth.signInWithPassword({
-    email: emailData,
+    email: profile.email,
     password,
   })
 
