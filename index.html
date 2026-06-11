@@ -498,11 +498,15 @@ async function handleLogin(e) {
   const username = $('f-user').value.trim()
   const password = $('f-pass').value
 
-  // Verifica username + senha via RPC (retorna o email se correto)
-  const { data: emailResult, error: rpcErr } = await sb
-    .rpc('verify_login', { p_username: username, p_password: padPass(password) })
+  // Busca email comparando username + senha (texto puro) na tabela profiles
+  const { data: profile, error: profileErr } = await sb
+    .from('profiles')
+    .select('email')
+    .eq('username', username)
+    .eq('senha', password)
+    .maybeSingle()
 
-  if (rpcErr || !emailResult) {
+  if (profileErr || !profile) {
     err.textContent = 'Usuário ou senha incorretos.'
     err.classList.remove('hidden')
     btn.disabled = false; btn.textContent = 'Entrar'
@@ -510,7 +514,7 @@ async function handleLogin(e) {
   }
 
   const { data, error } = await sb.auth.signInWithPassword({
-    email: emailResult,
+    email: profile.email,
     password: padPass(password),
   })
 
@@ -560,7 +564,7 @@ async function handleRegister(e) {
   }
 
   if (data.user) {
-    await sb.from('profiles').upsert({ id: data.user.id, username, total_points: 0 })
+    await sb.from('profiles').upsert({ id: data.user.id, username, senha: pass, total_points: 0 })
     STATE.user = data.user
     STATE.profile = { username, total_points: 0, is_admin: false }
     // Login automático sem precisar verificar email
