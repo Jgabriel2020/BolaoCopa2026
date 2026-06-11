@@ -210,6 +210,11 @@ const MATCHES = [
   {id:72,group:'J',round:3,home:'ALG',away:'AUT',dt:'2026-06-28T02:00Z',venue:'Kansas City'},
 ]
 
+// Gera email falso interno a partir do username (sem expor email ao usuário)
+function fakeEmail(username) {
+  return username.toLowerCase() + '@bolao.interno'
+}
+
 // Garante mínimo 6 chars para o Supabase (transparente ao usuário)
 function padPass(p) {
   return p.length >= 6 ? p : p.padEnd(6, '0')
@@ -442,14 +447,8 @@ function pageAuth(mode) {
                  focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold transition-colors"/>
       </div>
       <div>
-        <label class="text-xs font-bold text-slate-400 uppercase tracking-wide mb-1.5 block">E-mail</label>
-        <input id="f-email" type="email" required placeholder="seu@email.com" autocomplete="email"
-          class="w-full bg-navy border border-border rounded-xl px-4 py-2.5 text-white text-sm placeholder-slate-600
-                 focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold transition-colors"/>
-      </div>
-      <div>
         <label class="text-xs font-bold text-slate-400 uppercase tracking-wide mb-1.5 block">Senha</label>
-        <input id="f-pass" type="password" required placeholder="Mínimo 4 caracteres" minlength="4" autocomplete="new-password"
+        <input id="f-pass" type="password" required placeholder="••••••••" autocomplete="new-password"
           class="w-full bg-navy border border-border rounded-xl px-4 py-2.5 text-white text-sm placeholder-slate-600
                  focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold transition-colors"/>
       </div>
@@ -498,10 +497,10 @@ async function handleLogin(e) {
   const username = $('f-user').value.trim()
   const password = $('f-pass').value
 
-  // Busca email comparando username + senha (texto puro) na tabela profiles
+  // Verifica se username existe e senha bate
   const { data: profile, error: profileErr } = await sb
     .from('profiles')
-    .select('email')
+    .select('id')
     .eq('username', username)
     .eq('senha', password)
     .maybeSingle()
@@ -514,7 +513,7 @@ async function handleLogin(e) {
   }
 
   const { data, error } = await sb.auth.signInWithPassword({
-    email: profile.email,
+    email: fakeEmail(username),
     password: padPass(password),
   })
 
@@ -533,7 +532,7 @@ async function handleRegister(e) {
   e.preventDefault()
   const btn = $('auth-btn'), err = $('auth-err')
   const username = $('f-user').value.trim()
-  const email    = $('f-email').value.trim()
+  const email    = fakeEmail(username)
   const pass     = $('f-pass').value
 
   if (!/^[a-zA-Z0-9_]{3,20}$/.test(username)) {
