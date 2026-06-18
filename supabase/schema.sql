@@ -75,6 +75,11 @@ CREATE POLICY "predictions_insert_own"  ON public.predictions FOR INSERT
 -- Sem policy de UPDATE para predictions — palpites são imutáveis
 
 -- ─── FUNÇÃO: calcular pontos de um jogo ───────────────────────────────────────
+-- Regras de pontuação:
+--   3 pts → placar exato
+--   2 pts → vencedor certo + diferença de gols certa (não exato)
+--   1 pt  → vencedor ou empate certo
+--   0 pts → errou
 CREATE OR REPLACE FUNCTION public.calculate_points_for_match(
   p_match_id   INT,
   p_home_score INT,
@@ -85,45 +90,48 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
 DECLARE
-  r RECORD;
-  pts INT;
+  r              RECORD;
+  pts            INT;
   actual_outcome INT;   -- -1 away, 0 draw, 1 home
   pred_outcome   INT;
+  actual_diff    INT;   -- diferença de gols real
+  pred_diff      INT;   -- diferença de gols palpitada
 BEGIN
-  -- Determine actual outcome
   actual_outcome := CASE
-    WHEN p_home_score > p_away_score THEN 1
+    WHEN p_home_score > p_away_score THEN  1
     WHEN p_home_score < p_away_score THEN -1
     ELSE 0
   END;
 
-  -- Loop through all predictions for this match
+  actual_diff := p_home_score - p_away_score;
+
   FOR r IN
     SELECT id, user_id, home_score, away_score
     FROM public.predictions
     WHERE match_id = p_match_id
   LOOP
     pred_outcome := CASE
-      WHEN r.home_score > r.away_score THEN 1
+      WHEN r.home_score > r.away_score THEN  1
       WHEN r.home_score < r.away_score THEN -1
       ELSE 0
     END;
 
-    -- Calculate points
+    pred_diff := r.home_score - r.away_score;
+
     IF r.home_score = p_home_score AND r.away_score = p_away_score THEN
       pts := 3;  -- Placar exato
+    ELSIF pred_outcome = actual_outcome AND pred_diff = actual_diff THEN
+      pts := 2;  -- Vencedor certo + diferença de gols certa
     ELSIF pred_outcome = actual_outcome THEN
       pts := 1;  -- Acertou vencedor ou empate
     ELSE
       pts := 0;  -- Errou
     END IF;
 
-    -- Update prediction points
     UPDATE public.predictions
     SET points = pts
     WHERE id = r.id;
 
-    -- Update user total points
     UPDATE public.profiles
     SET total_points = (
       SELECT COALESCE(SUM(points), 0)

@@ -40,6 +40,7 @@
     @keyframes slideIn{from{transform:translateY(100%);opacity:0}to{transform:translateY(0);opacity:1}}
     .badge-3{background:linear-gradient(135deg,#f5a623,#c4821a)}
     .badge-1{background:linear-gradient(135deg,#3b82f6,#1d4ed8)}
+    .badge-2{background:linear-gradient(135deg,#22c55e,#15803d)}
     .badge-0{background:linear-gradient(135deg,#374151,#1f2937)}
     ::-webkit-scrollbar{width:5px;height:5px}
     ::-webkit-scrollbar-track{background:#0d1b2e}
@@ -288,6 +289,7 @@ function outcome(h, a) {
 
 function calcPoints(predH, predA, realH, realA) {
   if (predH === realH && predA === realA) return 3
+  if (outcome(predH, predA) === outcome(realH, realA) && (predH - predA) === (realH - realA)) return 2
   if (outcome(predH, predA) === outcome(realH, realA)) return 1
   return 0
 }
@@ -762,6 +764,8 @@ function buildCard(match) {
     const pts = calcPoints(pred.home_score, pred.away_score, dbM.home_score, dbM.away_score)
     ptsBadge = pts===3
       ? '<span class="badge-3 text-white text-xs font-black px-2.5 py-0.5 rounded-full">🎯 +3</span>'
+      : pts===2
+      ? '<span class="badge-2 text-white text-xs font-black px-2.5 py-0.5 rounded-full">⚡ +2</span>'
       : pts===1
       ? '<span class="badge-1 text-white text-xs font-black px-2.5 py-0.5 rounded-full">✓ +1</span>'
       : '<span class="badge-0 text-white text-xs font-black px-2.5 py-0.5 rounded-full">✕ 0</span>'
@@ -771,7 +775,7 @@ function buildCard(match) {
   let center = ''
   if (hasResult) {
     const pts = pred ? calcPoints(pred.home_score, pred.away_score, dbM.home_score, dbM.away_score) : null
-    const predColor = pts===3 ? 'text-green-400' : pts===1 ? 'text-yellow-400' : pts===0 ? 'text-red-400' : 'text-slate-500'
+    const predColor = pts===3 ? 'text-green-400' : pts===2 ? 'text-green-300' : pts===1 ? 'text-yellow-400' : pts===0 ? 'text-red-400' : 'text-slate-500'
     center = `
       <div class="flex flex-col items-center gap-1.5">
         <div class="flex items-center gap-2">
@@ -1083,10 +1087,11 @@ async function loadRanking() {
   const counts = {}
   if (preds) preds.forEach(p => {
     const inRound = !roundMatchIds || roundMatchIds.has(p.match_id)
-    if (!counts[p.user_id]) counts[p.user_id] = { total:0, exact:0, partial:0 }
+    if (!counts[p.user_id]) counts[p.user_id] = { total:0, exact:0, diff:0, partial:0 }
     if (inRound) {
       counts[p.user_id].total++
       if (p.points===3) counts[p.user_id].exact++
+      else if (p.points===2) counts[p.user_id].diff++
       else if (p.points===1) counts[p.user_id].partial++
       roundPoints[p.user_id] = (roundPoints[p.user_id]||0) + (p.points||0)
     }
@@ -1110,7 +1115,7 @@ async function loadRanking() {
         const pts = STATE.rankRound ? (roundPoints[u.id]||0) : u.total_points
         const rank = i+1
         const isMe = u.id === STATE.user?.id
-        const c = counts[u.id] || { total:0, exact:0, partial:0 }
+        const c = counts[u.id] || { total:0, exact:0, diff:0, partial:0 }
         const medal = rank===1?'🥇':rank===2?'🥈':rank===3?'🥉':`<span class="text-sm font-bold text-slate-500">${rank}°</span>`
         return `
         <div class="flex items-center gap-3 px-4 py-3 rounded-2xl border transition-all
@@ -1124,6 +1129,7 @@ async function loadRanking() {
             <div class="flex items-center gap-3 mt-0.5 text-xs text-slate-500">
               <span>${c.total} palpite${c.total!==1?'s':''}</span>
               ${c.exact>0?`<span class="text-yellow-500">🎯 ${c.exact}</span>`:''}
+              ${c.diff>0?`<span class="text-green-400">⚡ ${c.diff}</span>`:''}
               ${c.partial>0?`<span class="text-blue-400">✓ ${c.partial}</span>`:''}
             </div>
           </div>
@@ -1179,6 +1185,7 @@ async function loadRanking() {
     </div>
     <div class="flex items-center gap-4 mb-4 px-1 text-xs text-slate-500">
       <span class="flex items-center gap-1"><span class="badge-3 rounded px-1.5 py-0.5 text-white font-bold">3pts</span> Exato</span>
+      <span class="flex items-center gap-1"><span class="badge-2 rounded px-1.5 py-0.5 text-white font-bold">2pts</span> Vencedor+Dif</span>
       <span class="flex items-center gap-1"><span class="badge-1 rounded px-1.5 py-0.5 text-white font-bold">1pt</span> Resultado</span>
       <span class="flex items-center gap-1"><span class="badge-0 rounded px-1.5 py-0.5 text-white font-bold">0pts</span> Errou</span>
     </div>
@@ -1214,12 +1221,13 @@ async function pageMyPicks() {
   const total   = preds.length
   const pending = MATCHES.length - total
 
-  let exact = 0, partial = 0, miss = 0
+  let exact = 0, diff = 0, partial = 0, miss = 0
   preds.forEach(p => {
     const dbM = STATE.dbMatches[p.match_id]
     if (!dbM || dbM.home_score == null) return
     const pts = calcPoints(p.home_score, p.away_score, dbM.home_score, dbM.away_score)
     if (pts===3) exact++
+    else if (pts===2) diff++
     else if (pts===1) partial++
     else miss++
   })
@@ -1233,13 +1241,15 @@ async function pageMyPicks() {
 
     const ptsBadge = pts===3
       ? '<span class="badge-3 text-white text-xs font-black px-2.5 py-1 rounded-full">🎯 +3</span>'
+      : pts===2
+      ? '<span class="badge-2 text-white text-xs font-black px-2.5 py-1 rounded-full">⚡ +2</span>'
       : pts===1
       ? '<span class="badge-1 text-white text-xs font-black px-2.5 py-1 rounded-full">✓ +1</span>'
       : pts===0
       ? '<span class="badge-0 text-white text-xs font-black px-2.5 py-1 rounded-full">✕ 0</span>'
       : '<span class="text-xs text-slate-500">aguardando</span>'
 
-    const border = pts===3?'border-yellow-700/50':pts===1?'border-blue-700/50':'border-border'
+    const border = pts===3?'border-yellow-700/50':pts===2?'border-green-700/50':pts===1?'border-blue-700/50':'border-border'
 
     return `
     <div class="bg-card border ${border} rounded-2xl px-4 py-3">
@@ -1280,9 +1290,10 @@ async function pageMyPicks() {
           <div class="text-xs text-slate-400">pontos</div>
         </div>
       </div>
-      <div class="grid grid-cols-4 gap-2 text-center">
+      <div class="grid grid-cols-5 gap-2 text-center">
         <div class="bg-navy rounded-xl p-2"><div class="text-xl font-black text-white">${total}</div><div class="text-xs text-slate-400">palpites</div></div>
         <div class="bg-yellow-900/30 rounded-xl p-2"><div class="text-xl font-black text-yellow-400">${exact}</div><div class="text-xs text-slate-400">cravados</div></div>
+        <div class="bg-green-900/30 rounded-xl p-2"><div class="text-xl font-black text-green-400">${diff}</div><div class="text-xs text-slate-400">diferença</div></div>
         <div class="bg-blue-900/30 rounded-xl p-2"><div class="text-xl font-black text-blue-400">${partial}</div><div class="text-xs text-slate-400">acertos</div></div>
         <div class="bg-slate-800/50 rounded-xl p-2"><div class="text-xl font-black text-slate-400">${pending}</div><div class="text-xs text-slate-400">pendentes</div></div>
       </div>
