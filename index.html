@@ -289,8 +289,9 @@ function outcome(h, a) {
 
 function calcPoints(predH, predA, realH, realA) {
   if (predH === realH && predA === realA) return 3
-  if (outcome(predH, predA) === outcome(realH, realA) && (predH - predA) === (realH - realA)) return 2
-  if (outcome(predH, predA) === outcome(realH, realA)) return 1
+  const predOut = outcome(predH, predA), realOut = outcome(realH, realA)
+  if (predOut === realOut && realOut !== 0 && (predH - predA) === (realH - realA)) return 2
+  if (predOut === realOut) return 1
   return 0
 }
 

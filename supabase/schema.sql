@@ -120,8 +120,8 @@ BEGIN
 
     IF r.home_score = p_home_score AND r.away_score = p_away_score THEN
       pts := 3;  -- Placar exato
-    ELSIF pred_outcome = actual_outcome AND pred_diff = actual_diff THEN
-      pts := 2;  -- Vencedor certo + diferença de gols certa
+    ELSIF pred_outcome = actual_outcome AND actual_outcome <> 0 AND pred_diff = actual_diff THEN
+      pts := 2;  -- Vencedor certo + diferença de gols certa (só quando há vencedor)
     ELSIF pred_outcome = actual_outcome THEN
       pts := 1;  -- Acertou vencedor ou empate
     ELSE
