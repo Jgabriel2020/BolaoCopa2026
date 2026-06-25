@@ -4,45 +4,42 @@
     {
       "parameters": {
         "rule": {
-          "interval": [{ "field": "minutes", "minutesInterval": 30 }]
+          "interval": [{ "field": "minutes", "minutesInterval": 1 }]
         }
       },
-      "id": "node-schedule",
-      "name": "A cada 30 min",
+      "id": "cc7105ae-bd1f-4b64-b34d-22a193ca90a8",
+      "name": "A cada 1 min",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
-      "position": [240, 300]
+      "position": [1408, 2928]
     },
     {
       "parameters": {
-        "method": "GET",
-        "url": "https://widget.api-futebol.com.br/render/widget_e2ceca57fb8306a3",
+        "url": "https://api.football-data.org/v4/competitions/WC/matches?status=FINISHED",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "User-Agent", "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36" },
-            { "name": "Referer", "value": "https://widget.api-futebol.com.br/render/widget_e2ceca57fb8306a3" },
-            { "name": "Accept", "value": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8" },
-            { "name": "Accept-Language", "value": "pt-BR,pt;q=0.9" }
+            { "name": "X-Auth-Token", "value": "c244ba0a0bab4125a1ebfb59d247c219" },
+            { "name": "X-Unfold-Goals", "value": "true" }
           ]
         },
         "options": {}
       },
-      "id": "node-widget",
-      "name": "Buscar Widget",
+      "id": "d7930d1a-74f3-4db5-b197-0a875fe25133",
+      "name": "Buscar Resultados (football-data)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [460, 300]
+      "position": [1648, 2928]
     },
     {
       "parameters": {
-        "jsCode": "// Parser do widget api-futebol.com.br\nconst html = $input.first().json.data || $input.first().json.body || String($input.first().json) || '';\n\nconst WIDGET_MAP = {\n  'MEX':'MEX','AFS':'RSA','COR':'KOR','TCH':'CZE','CAN':'CAN','BOS':'BIH',\n  'CAT':'QAT','SUI':'SUI','BRA':'BRA','MAR':'MAR','HAI':'HAI','ESC':'SCO',\n  'EUA':'USA','PAR':'PAR','AUS':'AUS','TUR':'TUR','ALE':'GER','CUR':'CUW',\n  'CDM':'CIV','EQU':'ECU','HOL':'NED','JAP':'JPN','SUE':'SWE','TUN':'TUN',\n  'BEL':'BEL','EGI':'EGY','IRA':'IRN','NZL':'NZL','ESP':'ESP','CAB':'CPV',\n  'ARA':'KSA','URU':'URU','FRA':'FRA','SEN':'SEN','IRQ':'IRQ','NOR':'NOR',\n  'ARG':'ARG','AGL':'ALG','AUT':'AUT','JOR':'JOR','POR':'POR','RDC':'COD',\n  'UZB':'UZB','COL':'COL','ING':'ENG','CRO':'CRO','GAN':'GHA','PAN':'PAN',\n  'RSA':'RSA','KOR':'KOR','CZE':'CZE','BIH':'BIH','QAT':'QAT','SCO':'SCO',\n  'USA':'USA','GER':'GER','CUW':'CUW','CIV':'CIV','ECU':'ECU','NED':'NED',\n  'JPN':'JPN','SWE':'SWE','EGY':'EGY','IRN':'IRN','CPV':'CPV','KSA':'KSA',\n  'ALG':'ALG','COD':'COD','ENG':'ENG','GHA':'GHA'\n};\n\nconst MATCHES = [\n  {id:1,home:'MEX',away:'RSA'},{id:2,home:'KOR',away:'CZE'},{id:3,home:'CAN',away:'BIH'},\n  {id:4,home:'USA',away:'PAR'},{id:5,home:'QAT',away:'SUI'},{id:6,home:'BRA',away:'MAR'},\n  {id:7,home:'HAI',away:'SCO'},{id:8,home:'AUS',away:'TUR'},{id:9,home:'GER',away:'CUW'},\n  {id:10,home:'CIV',away:'ECU'},{id:11,home:'NED',away:'JPN'},{id:12,home:'SWE',away:'TUN'},\n  {id:13,home:'ESP',away:'CPV'},{id:14,home:'BEL',away:'EGY'},{id:15,home:'KSA',away:'URU'},\n  {id:16,home:'IRN',away:'NZL'},{id:17,home:'FRA',away:'SEN'},{id:18,home:'IRQ',away:'NOR'},\n  {id:19,home:'ARG',away:'ALG'},{id:20,home:'AUT',away:'JOR'},{id:21,home:'POR',away:'COD'},\n  {id:22,home:'ENG',away:'CRO'},{id:23,home:'GHA',away:'PAN'},{id:24,home:'UZB',away:'COL'},\n  {id:25,home:'CZE',away:'RSA'},{id:26,home:'SUI',away:'BIH'},{id:27,home:'CAN',away:'QAT'},\n  {id:28,home:'MEX',away:'KOR'},{id:29,home:'USA',away:'AUS'},{id:30,home:'SCO',away:'MAR'},\n  {id:31,home:'BRA',away:'HAI'},{id:32,home:'TUR',away:'PAR'},{id:33,home:'NED',away:'SWE'},\n  {id:34,home:'GER',away:'CIV'},{id:35,home:'ECU',away:'CUW'},{id:36,home:'TUN',away:'JPN'},\n  {id:37,home:'ESP',away:'KSA'},{id:38,home:'BEL',away:'IRN'},{id:39,home:'URU',away:'CPV'},\n  {id:40,home:'NZL',away:'EGY'},{id:41,home:'ARG',away:'AUT'},{id:42,home:'FRA',away:'IRQ'},\n  {id:43,home:'NOR',away:'SEN'},{id:44,home:'JOR',away:'ALG'},{id:45,home:'POR',away:'UZB'},\n  {id:46,home:'ENG',away:'GHA'},{id:47,home:'PAN',away:'CRO'},{id:48,home:'COL',away:'COD'},\n  {id:49,home:'MEX',away:'CZE'},{id:50,home:'RSA',away:'KOR'},{id:51,home:'SUI',away:'CAN'},\n  {id:52,home:'BIH',away:'QAT'},{id:53,home:'SCO',away:'BRA'},{id:54,home:'MAR',away:'HAI'},\n  {id:55,home:'TUR',away:'USA'},{id:56,home:'PAR',away:'AUS'},{id:57,home:'ECU',away:'GER'},\n  {id:58,home:'CUW',away:'CIV'},{id:59,home:'JPN',away:'SWE'},{id:60,home:'TUN',away:'NED'},\n  {id:61,home:'NOR',away:'FRA'},{id:62,home:'SEN',away:'IRQ'},{id:63,home:'CPV',away:'KSA'},\n  {id:64,home:'URU',away:'ESP'},{id:65,home:'EGY',away:'IRN'},{id:66,home:'NZL',away:'BEL'},\n  {id:67,home:'PAN',away:'ENG'},{id:68,home:'CRO',away:'GHA'},{id:69,home:'COL',away:'POR'},\n  {id:70,home:'COD',away:'UZB'},{id:71,home:'JOR',away:'ARG'},{id:72,home:'ALG',away:'AUT'}\n];\n\nconst toUpdate = [];\n\nconst pattern = /<span>([A-Z]{2,4})<\\/span>[\\s\\S]{1,500}?<div class=\"text-xl text-center\">(\\d*)<\\/div>[\\s\\S]{1,700}?<div class=\"text-xl text-center\">(\\d*)<\\/div>[\\s\\S]{1,500}?<span>([A-Z]{2,4})<\\/span>/g;\n\nlet m;\nwhile ((m = pattern.exec(html)) !== null) {\n  const widgetHome = m[1];\n  const scoreHome  = m[2];\n  const scoreAway  = m[3];\n  const widgetAway = m[4];\n\n  if (scoreHome === '' || scoreAway === '') continue;\n\n  const homeCode = WIDGET_MAP[widgetHome];\n  const awayCode = WIDGET_MAP[widgetAway];\n  if (!homeCode || !awayCode) continue;\n\n  const localMatch = MATCHES.find(x => x.home === homeCode && x.away === awayCode);\n  if (!localMatch) continue;\n\n  if (!toUpdate.find(u => u.id === localMatch.id)) {\n    toUpdate.push({\n      id: localMatch.id,\n      home_score: parseInt(scoreHome),\n      away_score: parseInt(scoreAway),\n      label: homeCode + ' ' + scoreHome + 'x' + scoreAway + ' ' + awayCode\n    });\n    console.log('Placar encontrado:', homeCode, scoreHome, 'x', scoreAway, awayCode);\n  }\n}\n\nconsole.log('Total para atualizar:', toUpdate.length);\n\nif (toUpdate.length === 0) {\n  return [{ json: { debug: true, found: 0 } }];\n}\n\nreturn toUpdate.map(item => ({ json: item }));"
+        "jsCode": "const MAP = {\n  'MEX':'MEX','RSA':'RSA','KOR':'KOR','CZE':'CZE','CAN':'CAN',\n  'BIH':'BIH','QAT':'QAT','SUI':'SUI','BRA':'BRA','MAR':'MAR',\n  'HAI':'HAI','SCO':'SCO','USA':'USA','PAR':'PAR','AUS':'AUS',\n  'TUR':'TUR','GER':'GER','CUW':'CUW','CIV':'CIV','ECU':'ECU',\n  'NED':'NED','JPN':'JPN','SWE':'SWE','TUN':'TUN','ESP':'ESP',\n  'CPV':'CPV','SAU':'KSA','URU':'URU','BEL':'BEL','EGY':'EGY',\n  'IRN':'IRN','NZL':'NZL','FRA':'FRA','SEN':'SEN','IRQ':'IRQ',\n  'NOR':'NOR','ARG':'ARG','ALG':'ALG','AUT':'AUT','JOR':'JOR',\n  'POR':'POR','COD':'COD','ENG':'ENG','CRO':'CRO','GHA':'GHA',\n  'PAN':'PAN','UZB':'UZB','COL':'COL','KSA':'KSA','DZA':'ALG'\n};\n\nconst MATCHES = [\n  {id:1,home:'MEX',away:'RSA',dt:'2026-06-11T19:00:00Z'},\n  {id:2,home:'KOR',away:'CZE',dt:'2026-06-12T02:00:00Z'},\n  {id:3,home:'CAN',away:'BIH',dt:'2026-06-12T19:00:00Z'},\n  {id:4,home:'USA',away:'PAR',dt:'2026-06-13T01:00:00Z'},\n  {id:5,home:'QAT',away:'SUI',dt:'2026-06-13T19:00:00Z'},\n  {id:6,home:'BRA',away:'MAR',dt:'2026-06-13T22:00:00Z'},\n  {id:7,home:'HAI',away:'SCO',dt:'2026-06-14T01:00:00Z'},\n  {id:8,home:'AUS',away:'TUR',dt:'2026-06-14T04:00:00Z'},\n  {id:9,home:'GER',away:'CUW',dt:'2026-06-14T17:00:00Z'},\n  {id:10,home:'CIV',away:'ECU',dt:'2026-06-14T23:00:00Z'},\n  {id:11,home:'NED',away:'JPN',dt:'2026-06-15T20:00:00Z'},\n  {id:12,home:'SWE',away:'TUN',dt:'2026-06-15T02:00:00Z'},\n  {id:13,home:'ESP',away:'CPV',dt:'2026-06-15T17:00:00Z'},\n  {id:14,home:'BEL',away:'EGY',dt:'2026-06-15T22:00:00Z'},\n  {id:15,home:'KSA',away:'URU',dt:'2026-06-15T22:00:00Z'},\n  {id:16,home:'IRN',away:'NZL',dt:'2026-06-16T04:00:00Z'},\n  {id:17,home:'FRA',away:'SEN',dt:'2026-06-16T19:00:00Z'},\n  {id:18,home:'IRQ',away:'NOR',dt:'2026-06-16T22:00:00Z'},\n  {id:19,home:'ARG',away:'ALG',dt:'2026-06-17T01:00:00Z'},\n  {id:20,home:'AUT',away:'JOR',dt:'2026-06-17T04:00:00Z'},\n  {id:21,home:'POR',away:'COD',dt:'2026-06-17T17:00:00Z'},\n  {id:22,home:'ENG',away:'CRO',dt:'2026-06-17T20:00:00Z'},\n  {id:23,home:'GHA',away:'PAN',dt:'2026-06-17T23:00:00Z'},\n  {id:24,home:'UZB',away:'COL',dt:'2026-06-18T02:00:00Z'},\n  {id:25,home:'CZE',away:'RSA',dt:'2026-06-18T16:00:00Z'},\n  {id:26,home:'SUI',away:'BIH',dt:'2026-06-18T19:00:00Z'},\n  {id:27,home:'CAN',away:'QAT',dt:'2026-06-18T22:00:00Z'},\n  {id:28,home:'MEX',away:'KOR',dt:'2026-06-19T01:00:00Z'},\n  {id:29,home:'USA',away:'AUS',dt:'2026-06-19T19:00:00Z'},\n  {id:30,home:'SCO',away:'MAR',dt:'2026-06-19T22:00:00Z'},\n  {id:31,home:'BRA',away:'HAI',dt:'2026-06-20T01:00:00Z'},\n  {id:32,home:'TUR',away:'PAR',dt:'2026-06-20T04:00:00Z'},\n  {id:33,home:'NED',away:'SWE',dt:'2026-06-20T17:00:00Z'},\n  {id:34,home:'GER',away:'CIV',dt:'2026-06-20T20:00:00Z'},\n  {id:35,home:'ECU',away:'CUW',dt:'2026-06-21T00:00:00Z'},\n  {id:36,home:'TUN',away:'JPN',dt:'2026-06-21T04:00:00Z'},\n  {id:37,home:'ESP',away:'KSA',dt:'2026-06-21T16:00:00Z'},\n  {id:38,home:'BEL',away:'IRN',dt:'2026-06-21T19:00:00Z'},\n  {id:39,home:'URU',away:'CPV',dt:'2026-06-21T22:00:00Z'},\n  {id:40,home:'NZL',away:'EGY',dt:'2026-06-22T01:00:00Z'},\n  {id:41,home:'ARG',away:'AUT',dt:'2026-06-22T17:00:00Z'},\n  {id:42,home:'FRA',away:'IRQ',dt:'2026-06-22T21:00:00Z'},\n  {id:43,home:'NOR',away:'SEN',dt:'2026-06-23T00:00:00Z'},\n  {id:44,home:'JOR',away:'ALG',dt:'2026-06-23T03:00:00Z'},\n  {id:45,home:'POR',away:'UZB',dt:'2026-06-23T17:00:00Z'},\n  {id:46,home:'ENG',away:'GHA',dt:'2026-06-23T20:00:00Z'},\n  {id:47,home:'PAN',away:'CRO',dt:'2026-06-23T23:00:00Z'},\n  {id:48,home:'COL',away:'COD',dt:'2026-06-24T02:00:00Z'},\n  {id:49,home:'MEX',away:'CZE',dt:'2026-06-24T16:00:00Z'},\n  {id:50,home:'RSA',away:'KOR',dt:'2026-06-24T16:00:00Z'},\n  {id:51,home:'SUI',away:'CAN',dt:'2026-06-24T19:00:00Z'},\n  {id:52,home:'BIH',away:'QAT',dt:'2026-06-24T19:00:00Z'},\n  {id:53,home:'SCO',away:'BRA',dt:'2026-06-24T22:00:00Z'},\n  {id:54,home:'MAR',away:'HAI',dt:'2026-06-24T22:00:00Z'},\n  {id:55,home:'TUR',away:'USA',dt:'2026-06-25T20:00:00Z'},\n  {id:56,home:'PAR',away:'AUS',dt:'2026-06-25T20:00:00Z'},\n  {id:57,home:'ECU',away:'GER',dt:'2026-06-25T20:00:00Z'},\n  {id:58,home:'CUW',away:'CIV',dt:'2026-06-25T20:00:00Z'},\n  {id:59,home:'JPN',away:'SWE',dt:'2026-06-25T23:00:00Z'},\n  {id:60,home:'TUN',away:'NED',dt:'2026-06-25T23:00:00Z'},\n  {id:61,home:'NOR',away:'FRA',dt:'2026-06-26T19:00:00Z'},\n  {id:62,home:'SEN',away:'IRQ',dt:'2026-06-26T19:00:00Z'},\n  {id:63,home:'CPV',away:'KSA',dt:'2026-06-27T00:00:00Z'},\n  {id:64,home:'URU',away:'ESP',dt:'2026-06-27T00:00:00Z'},\n  {id:65,home:'EGY',away:'IRN',dt:'2026-06-27T03:00:00Z'},\n  {id:66,home:'NZL',away:'BEL',dt:'2026-06-27T03:00:00Z'},\n  {id:67,home:'PAN',away:'ENG',dt:'2026-06-27T21:00:00Z'},\n  {id:68,home:'CRO',away:'GHA',dt:'2026-06-27T21:00:00Z'},\n  {id:69,home:'COL',away:'POR',dt:'2026-06-27T23:30:00Z'},\n  {id:70,home:'COD',away:'UZB',dt:'2026-06-27T23:30:00Z'},\n  {id:71,home:'JOR',away:'ARG',dt:'2026-06-28T02:00:00Z'},\n  {id:72,home:'ALG',away:'AUT',dt:'2026-06-28T02:00:00Z'}\n];\n\nconst now = Date.now();\nconst apiMatches = $input.first().json.matches || [];\nconst toUpdate = [];\n\nfor (const apiM of apiMatches) {\n  if (apiM.status !== 'FINISHED') continue;\n  const score = apiM.score?.fullTime;\n  if (score?.home == null || score?.away == null) continue;\n\n  const apiHome = MAP[apiM.homeTeam?.tla] || apiM.homeTeam?.tla;\n  const apiAway = MAP[apiM.awayTeam?.tla] || apiM.awayTeam?.tla;\n\n  const local = MATCHES.find(m => m.home === apiHome && m.away === apiAway);\n  if (!local) continue;\n\n  const matchStart = new Date(local.dt).getTime();\n  if (now < matchStart + 2.5 * 60 * 60 * 1000) continue;\n\n  toUpdate.push({ match_id: local.id, home_score: score.home, away_score: score.away });\n}\n\nconsole.log('Jogos para atualizar:', toUpdate.length);\nreturn toUpdate.length > 0 ? toUpdate.map(item => ({ json: item })) : [{ json: { match_id: 0 } }];"
       },
-      "id": "node-code",
-      "name": "Parsear HTML e Extrair Placares",
+      "id": "dae5b1a5-61f7-4b65-9cad-da6dd48fd280",
+      "name": "Mapear e Filtrar Jogos",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [680, 300]
+      "position": [1872, 2928]
     },
     {
       "parameters": {
@@ -56,56 +53,50 @@
           "conditions": [
             {
               "id": "cond-1",
-              "leftValue": "={{ $json.id }}",
+              "leftValue": "={{ $input.all().length }}",
               "rightValue": 0,
-              "operator": {
-                "type": "number",
-                "operation": "gt"
-              }
+              "operator": { "type": "number", "operation": "gt" }
+            },
+            {
+              "id": "cond-2",
+              "leftValue": "={{ $json.match_id }}",
+              "rightValue": 0,
+              "operator": { "type": "number", "operation": "gt" }
             }
           ],
           "combinator": "and"
         },
         "options": {}
       },
-      "id": "node-if",
+      "id": "2ce95872-0bc2-4352-a110-d951d7124ec6",
       "name": "Tem jogos para atualizar?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [900, 300]
+      "position": [2096, 2928]
     },
     {
       "parameters": {
-        "operation": "update",
-        "tableId": "matches",
-        "filters": {
-          "conditions": [
-            {
-              "keyName": "id",
-              "condition": "eq",
-              "keyValue": "={{ $json.id }}"
-            }
+        "method": "PATCH",
+        "url": "=https://zmxwhjmgsyzcuovepqss.supabase.co/rest/v1/matches?id=eq.{{ $json.match_id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpteHdoam1nc3l6Y3VvdmVwcXNzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MTEyOTk3MywiZXhwIjoyMDk2NzA1OTczfQ.Fue2GImIyNW7VmUPiyroOLVAurAWrpnDOx28mp5_Pko" },
+            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpteHdoam1nc3l6Y3VvdmVwcXNzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MTEyOTk3MywiZXhwIjoyMDk2NzA1OTczfQ.Fue2GImIyNW7VmUPiyroOLVAurAWrpnDOx28mp5_Pko" },
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "Prefer", "value": "return=minimal" }
           ]
         },
-        "fieldsUi": {
-          "fieldValues": [
-            { "fieldId": "home_score", "fieldValue": "={{ $json.home_score }}" },
-            { "fieldId": "away_score", "fieldValue": "={{ $json.away_score }}" },
-            { "fieldId": "status", "fieldValue": "finished" }
-          ]
-        }
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ home_score: $json.home_score, away_score: $json.away_score, status: 'finished' }) }}",
+        "options": {}
       },
-      "id": "node-supabase-update",
+      "id": "220354e6-d749-4cc9-b329-4b5db7bb2cf2",
       "name": "Atualizar Placar no Supabase",
-      "type": "n8n-nodes-base.supabase",
-      "typeVersion": 1,
-      "position": [1120, 220],
-      "credentials": {
-        "supabaseApi": {
-          "id": "SUPABASE_CRED_ID",
-          "name": "Supabase account"
-        }
-      }
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2304, 2848]
     },
     {
       "parameters": {
@@ -114,31 +105,32 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpteHdoam1nc3l6Y3VvdmVwcXNzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODExMjk5NzMsImV4cCI6MjA5NjcwNTk3M30.429hD8d6_uksGL125V9XVvec7ySPtc3RqWxhEcWL4po" },
-            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpteHdoam1nc3l6Y3VvdmVwcXNzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODExMjk5NzMsImV4cCI6MjA5NjcwNTk3M30.429hD8d6_uksGL125V9XVvec7ySPtc3RqWxhEcWL4po" },
-            { "name": "Content-Type", "value": "application/json" }
+            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpteHdoam1nc3l6Y3VvdmVwcXNzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MTEyOTk3MywiZXhwIjoyMDk2NzA1OTczfQ.Fue2GImIyNW7VmUPiyroOLVAurAWrpnDOx28mp5_Pko" },
+            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpteHdoam1nc3l6Y3VvdmVwcXNzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MTEyOTk3MywiZXhwIjoyMDk2NzA1OTczfQ.Fue2GImIyNW7VmUPiyroOLVAurAWrpnDOx28mp5_Pko" },
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "Prefer", "value": "params=single-object" }
           ]
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ p_match_id: $json.id, p_home_score: $json.home_score, p_away_score: $json.away_score }) }}",
+        "jsonBody": "={{ JSON.stringify({ p_match_id: $('Mapear e Filtrar Jogos').item.json.match_id, p_home_score: $('Mapear e Filtrar Jogos').item.json.home_score, p_away_score: $('Mapear e Filtrar Jogos').item.json.away_score }) }}",
         "options": {}
       },
-      "id": "node-rpc",
+      "id": "b6ebfb14-1e36-4d2d-b3cb-0f34703e2c94",
       "name": "Calcular Pontos",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1340, 220]
+      "position": [2528, 2848]
     }
   ],
   "connections": {
-    "A cada 30 min": {
-      "main": [[{ "node": "Buscar Widget", "type": "main", "index": 0 }]]
+    "A cada 1 min": {
+      "main": [[{ "node": "Buscar Resultados (football-data)", "type": "main", "index": 0 }]]
     },
-    "Buscar Widget": {
-      "main": [[{ "node": "Parsear HTML e Extrair Placares", "type": "main", "index": 0 }]]
+    "Buscar Resultados (football-data)": {
+      "main": [[{ "node": "Mapear e Filtrar Jogos", "type": "main", "index": 0 }]]
     },
-    "Parsear HTML e Extrair Placares": {
+    "Mapear e Filtrar Jogos": {
       "main": [[{ "node": "Tem jogos para atualizar?", "type": "main", "index": 0 }]]
     },
     "Tem jogos para atualizar?": {
@@ -155,6 +147,6 @@
   "staticData": null,
   "tags": [],
   "triggerCount": 1,
-  "updatedAt": "2026-06-11T00:00:00.000Z",
-  "versionId": "5"
+  "updatedAt": "2026-06-25T00:00:00.000Z",
+  "versionId": "6"
 }
