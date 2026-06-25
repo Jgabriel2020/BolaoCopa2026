@@ -202,14 +202,14 @@ const MATCHES = [
   {id:47,group:'L',round:2,home:'PAN',away:'CRO',dt:'2026-06-23T23:00Z',venue:'Toronto'},
   {id:48,group:'K',round:2,home:'COL',away:'COD',dt:'2026-06-24T02:00Z',venue:'Zapopan'},
   // RODADA 3 (simultâneos)
-  {id:49,group:'A',round:3,home:'MEX',away:'CZE',dt:'2026-06-24T16:00Z',venue:'Kansas City'},
-  {id:50,group:'A',round:3,home:'RSA',away:'KOR',dt:'2026-06-24T16:00Z',venue:'Houston'},
+  {id:49,group:'A',round:3,home:'MEX',away:'CZE',dt:'2026-06-25T01:00Z',venue:'Kansas City'},
+  {id:50,group:'A',round:3,home:'RSA',away:'KOR',dt:'2026-06-25T01:00Z',venue:'Houston'},
   {id:51,group:'B',round:3,home:'SUI',away:'CAN',dt:'2026-06-24T19:00Z',venue:'Vancouver'},
   {id:52,group:'B',round:3,home:'BIH',away:'QAT',dt:'2026-06-24T19:00Z',venue:'Seattle'},
   {id:53,group:'C',round:3,home:'SCO',away:'BRA',dt:'2026-06-24T22:00Z',venue:'Miami Gardens'},
   {id:54,group:'C',round:3,home:'MAR',away:'HAI',dt:'2026-06-24T22:00Z',venue:'Atlanta'},
-  {id:55,group:'D',round:3,home:'TUR',away:'USA',dt:'2026-06-25T20:00Z',venue:'Inglewood'},
-  {id:56,group:'D',round:3,home:'PAR',away:'AUS',dt:'2026-06-25T20:00Z',venue:'Santa Clara'},
+  {id:55,group:'D',round:3,home:'TUR',away:'USA',dt:'2026-06-26T02:00Z',venue:'Inglewood'},
+  {id:56,group:'D',round:3,home:'PAR',away:'AUS',dt:'2026-06-26T02:00Z',venue:'Santa Clara'},
   {id:57,group:'E',round:3,home:'ECU',away:'GER',dt:'2026-06-25T20:00Z',venue:'East Rutherford'},
   {id:58,group:'E',round:3,home:'CUW',away:'CIV',dt:'2026-06-25T20:00Z',venue:'Philadelphia'},
   {id:59,group:'F',round:3,home:'JPN',away:'SWE',dt:'2026-06-25T23:00Z',venue:'Arlington'},
@@ -289,8 +289,9 @@ function outcome(h, a) {
 
 function calcPoints(predH, predA, realH, realA) {
   if (predH === realH && predA === realA) return 3
-  if (outcome(predH, predA) === outcome(realH, realA) && (predH - predA) === (realH - realA)) return 2
-  if (outcome(predH, predA) === outcome(realH, realA)) return 1
+  const predOut = outcome(predH, predA), realOut = outcome(realH, realA)
+  if (predOut === realOut && realOut !== 0 && (predH - predA) === (realH - realA)) return 2
+  if (predOut === realOut) return 1
   return 0
 }
 
@@ -1232,47 +1233,119 @@ async function pageMyPicks() {
     else miss++
   })
 
-  const rows = MATCHES.filter(m => STATE.predictions[m.id]).map(m => {
-    const pred = STATE.predictions[m.id]
-    const dbM  = STATE.dbMatches[m.id] || {}
-    const home = TEAMS[m.home], away = TEAMS[m.away]
-    const hasResult = dbM.home_score != null
-    const pts = hasResult ? calcPoints(pred.home_score, pred.away_score, dbM.home_score, dbM.away_score) : null
+  const rounds = [...new Set(MATCHES.map(m => m.round))].sort((a,b) => a-b)
 
-    const ptsBadge = pts===3
-      ? '<span class="badge-3 text-white text-xs font-black px-2.5 py-1 rounded-full">🎯 +3</span>'
-      : pts===2
-      ? '<span class="badge-2 text-white text-xs font-black px-2.5 py-1 rounded-full">⚡ +2</span>'
-      : pts===1
-      ? '<span class="badge-1 text-white text-xs font-black px-2.5 py-1 rounded-full">✓ +1</span>'
-      : pts===0
-      ? '<span class="badge-0 text-white text-xs font-black px-2.5 py-1 rounded-full">✕ 0</span>'
-      : '<span class="text-xs text-slate-500">aguardando</span>'
+  window._mpFilter = window._mpFilter || 'all'
+  window._mpRound  = window._mpRound  || rounds[0]
 
-    const border = pts===3?'border-yellow-700/50':pts===2?'border-green-700/50':pts===1?'border-blue-700/50':'border-border'
+  window.mpSetFilter = (f) => {
+    window._mpFilter = f
+    window.mpRender()
+  }
+  window.mpSetRound = (r) => {
+    window._mpRound = r
+    window.mpRender()
+  }
+  window.mpRender = () => {
+    const f = window._mpFilter
+    const r = window._mpRound
 
-    return `
-    <div class="bg-card border ${border} rounded-2xl px-4 py-3">
-      <div class="flex items-center justify-between mb-2">
-        <span class="text-xs text-slate-500">Grupo ${m.group} · R${m.round} · ${fmtFull(m.dt)}</span>
-        ${ptsBadge}
-      </div>
-      <div class="flex items-center gap-3">
-        <div class="flex-1 flex items-center gap-2 min-w-0">
-          <span class="text-xl">${home.flag}</span>
-          <span class="text-sm font-semibold text-white truncate">${home.name}</span>
-        </div>
-        <div class="flex-shrink-0 text-center">
-          <div class="text-sm font-black text-gold">${pred.home_score} × ${pred.away_score}</div>
-          ${hasResult ? `<div class="text-xs text-slate-500 mt-0.5">${dbM.home_score} × ${dbM.away_score}</div>` : ''}
-        </div>
-        <div class="flex-1 flex items-center justify-end gap-2 min-w-0">
-          <span class="text-sm font-semibold text-white truncate">${away.name}</span>
-          <span class="text-xl">${away.flag}</span>
-        </div>
-      </div>
-    </div>`
-  }).join('')
+    // update tab styles
+    document.querySelectorAll('[data-mp-round]').forEach(el => {
+      const active = parseInt(el.dataset.mpRound) === r
+      el.className = active
+        ? 'px-4 py-1.5 rounded-full text-sm font-bold bg-gold text-navy transition-all'
+        : 'px-4 py-1.5 rounded-full text-sm font-bold text-slate-400 hover:text-white transition-all'
+    })
+
+    // update filter button styles
+    const filterMap = { all:'#ffffff', exact:'#facc15', diff:'#4ade80', partial:'#60a5fa', miss:'#6b7280', pending:'#6b7280' }
+    document.querySelectorAll('[data-mp-filter]').forEach(el => {
+      const active = el.dataset.mpFilter === f
+      el.style.outline = active ? `2px solid ${filterMap[el.dataset.mpFilter]||'#fff'}` : 'none'
+      el.style.transform = active ? 'scale(1.05)' : 'scale(1)'
+    })
+
+    const rows = MATCHES
+      .filter(m => m.round === r)
+      .map(m => {
+        const pred = STATE.predictions[m.id]
+        const dbM  = STATE.dbMatches[m.id] || {}
+        const home = TEAMS[m.home], away = TEAMS[m.away]
+        const hasResult = dbM.home_score != null
+        const pts = (pred && hasResult) ? calcPoints(pred.home_score, pred.away_score, dbM.home_score, dbM.away_score) : null
+
+        // apply filter
+        if (f === 'exact'   && pts !== 3) return ''
+        if (f === 'diff'    && pts !== 2) return ''
+        if (f === 'partial' && pts !== 1) return ''
+        if (f === 'miss'    && pts !== 0) return ''
+        if (f === 'pending' && (pred || hasResult)) return ''
+
+        if (!pred) {
+          return `
+          <div class="bg-card border border-border rounded-2xl px-4 py-3 opacity-50">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs text-slate-500">Grupo ${m.group} · ${fmtFull(m.dt)}</span>
+              <span class="text-xs text-slate-600">sem palpite</span>
+            </div>
+            <div class="flex items-center gap-3">
+              <div class="flex-1 flex items-center gap-2"><span class="text-xl">${home.flag}</span><span class="text-sm font-semibold text-white">${home.name}</span></div>
+              <span class="text-slate-600 font-bold text-sm">× </span>
+              <div class="flex-1 flex items-center justify-end gap-2"><span class="text-sm font-semibold text-white">${away.name}</span><span class="text-xl">${away.flag}</span></div>
+            </div>
+          </div>`
+        }
+
+        const ptsBadge = pts===3
+          ? '<span class="badge-3 text-white text-xs font-black px-2.5 py-1 rounded-full">🎯 +3</span>'
+          : pts===2
+          ? '<span class="badge-2 text-white text-xs font-black px-2.5 py-1 rounded-full">⚡ +2</span>'
+          : pts===1
+          ? '<span class="badge-1 text-white text-xs font-black px-2.5 py-1 rounded-full">✓ +1</span>'
+          : pts===0
+          ? '<span class="badge-0 text-white text-xs font-black px-2.5 py-1 rounded-full">✕ 0</span>'
+          : '<span class="text-xs text-slate-500">aguardando</span>'
+
+        const border = pts===3?'border-yellow-700/50':pts===2?'border-green-700/50':pts===1?'border-blue-700/50':pts===0?'border-border':'border-border'
+
+        return `
+        <div class="bg-card border ${border} rounded-2xl px-4 py-3">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs text-slate-500">Grupo ${m.group} · ${fmtFull(m.dt)}</span>
+            ${ptsBadge}
+          </div>
+          <div class="flex items-center gap-3">
+            <div class="flex-1 flex items-center gap-2 min-w-0">
+              <span class="text-xl">${home.flag}</span>
+              <span class="text-sm font-semibold text-white truncate">${home.name}</span>
+            </div>
+            <div class="flex-shrink-0 text-center">
+              <div class="text-sm font-black text-gold">${pred.home_score} × ${pred.away_score}</div>
+              ${hasResult ? `<div class="text-xs text-slate-500 mt-0.5">${dbM.home_score} × ${dbM.away_score}</div>` : ''}
+            </div>
+            <div class="flex-1 flex items-center justify-end gap-2 min-w-0">
+              <span class="text-sm font-semibold text-white truncate">${away.name}</span>
+              <span class="text-xl">${away.flag}</span>
+            </div>
+          </div>
+        </div>`
+      }).join('')
+
+    const empty = rows.trim() === ''
+    document.getElementById('mp-list').innerHTML = empty
+      ? '<div class="text-center py-12 text-slate-500">Nenhum palpite nessa categoria.</div>'
+      : `<div class="flex flex-col gap-3">${rows}</div>`
+  }
+
+  const tabsHtml = rounds.map(r =>
+    `<button data-mp-round="${r}" onclick="mpSetRound(${r})"
+      class="px-4 py-1.5 rounded-full text-sm font-bold ${r===window._mpRound?'bg-gold text-navy':'text-slate-400 hover:text-white'} transition-all">
+      Rodada ${r}
+    </button>`
+  ).join('')
+
+  setTimeout(() => window.mpRender && window.mpRender(), 0)
 
   return `
   <div class="max-w-3xl mx-auto px-4 py-6">
@@ -1291,16 +1364,29 @@ async function pageMyPicks() {
         </div>
       </div>
       <div class="grid grid-cols-5 gap-2 text-center">
-        <div class="bg-navy rounded-xl p-2"><div class="text-xl font-black text-white">${total}</div><div class="text-xs text-slate-400">palpites</div></div>
-        <div class="bg-yellow-900/30 rounded-xl p-2"><div class="text-xl font-black text-yellow-400">${exact}</div><div class="text-xs text-slate-400">cravados</div></div>
-        <div class="bg-green-900/30 rounded-xl p-2"><div class="text-xl font-black text-green-400">${diff}</div><div class="text-xs text-slate-400">diferença</div></div>
-        <div class="bg-blue-900/30 rounded-xl p-2"><div class="text-xl font-black text-blue-400">${partial}</div><div class="text-xs text-slate-400">acertos</div></div>
-        <div class="bg-slate-800/50 rounded-xl p-2"><div class="text-xl font-black text-slate-400">${pending}</div><div class="text-xs text-slate-400">pendentes</div></div>
+        <div data-mp-filter="all" onclick="mpSetFilter('all')" class="bg-navy rounded-xl p-2 cursor-pointer hover:bg-navy/70 transition-all" style="outline:2px solid #fff;transform:scale(1.05)">
+          <div class="text-xl font-black text-white">${total}</div><div class="text-xs text-slate-400">palpites</div>
+        </div>
+        <div data-mp-filter="exact" onclick="mpSetFilter('exact')" class="bg-yellow-900/30 rounded-xl p-2 cursor-pointer hover:bg-yellow-900/50 transition-all">
+          <div class="text-xl font-black text-yellow-400">${exact}</div><div class="text-xs text-slate-400">cravados</div>
+        </div>
+        <div data-mp-filter="diff" onclick="mpSetFilter('diff')" class="bg-green-900/30 rounded-xl p-2 cursor-pointer hover:bg-green-900/50 transition-all">
+          <div class="text-xl font-black text-green-400">${diff}</div><div class="text-xs text-slate-400">diferença</div>
+        </div>
+        <div data-mp-filter="partial" onclick="mpSetFilter('partial')" class="bg-blue-900/30 rounded-xl p-2 cursor-pointer hover:bg-blue-900/50 transition-all">
+          <div class="text-xl font-black text-blue-400">${partial}</div><div class="text-xs text-slate-400">acertos</div>
+        </div>
+        <div data-mp-filter="pending" onclick="mpSetFilter('pending')" class="bg-slate-800/50 rounded-xl p-2 cursor-pointer hover:bg-slate-700/50 transition-all">
+          <div class="text-xl font-black text-slate-400">${pending}</div><div class="text-xs text-slate-400">pendentes</div>
+        </div>
       </div>
     </div>
-    ${total===0
-      ? '<div class="text-center py-16"><div class="text-5xl mb-4">⚽</div><p class="text-slate-400">Ainda sem palpites. Vá para "Jogos"!</p></div>'
-      : `<div class="flex flex-col gap-3">${rows}</div>`}
+
+    <div class="flex gap-2 mb-4 overflow-x-auto pb-1">
+      ${tabsHtml}
+    </div>
+
+    <div id="mp-list"></div>
   </div>`
 }
 

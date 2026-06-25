@@ -146,8 +146,8 @@ export const MATCHES = [
 
   // ─── RODADA 3 (simultâneos) ───────────────────────────────────────────────
   // Grupo A
-  { id: 49, group: 'A', round: 3, home: 'MEX', away: 'CZE', match_datetime: '2026-06-24T16:00:00Z', venue: 'Kansas City, EUA' },
-  { id: 50, group: 'A', round: 3, home: 'RSA', away: 'KOR', match_datetime: '2026-06-24T16:00:00Z', venue: 'Houston, EUA' },
+  { id: 49, group: 'A', round: 3, home: 'MEX', away: 'CZE', match_datetime: '2026-06-25T01:00:00Z', venue: 'Kansas City, EUA' },
+  { id: 50, group: 'A', round: 3, home: 'RSA', away: 'KOR', match_datetime: '2026-06-25T01:00:00Z', venue: 'Houston, EUA' },
   // Grupo B
   { id: 51, group: 'B', round: 3, home: 'SUI', away: 'CAN', match_datetime: '2026-06-24T19:00:00Z', venue: 'Vancouver, CAN' },
   { id: 52, group: 'B', round: 3, home: 'BIH', away: 'QAT', match_datetime: '2026-06-24T19:00:00Z', venue: 'Seattle, EUA' },
@@ -155,8 +155,8 @@ export const MATCHES = [
   { id: 53, group: 'C', round: 3, home: 'SCO', away: 'BRA', match_datetime: '2026-06-24T22:00:00Z', venue: 'Miami Gardens, EUA' },
   { id: 54, group: 'C', round: 3, home: 'MAR', away: 'HAI', match_datetime: '2026-06-24T22:00:00Z', venue: 'Atlanta, EUA' },
   // Grupo D
-  { id: 55, group: 'D', round: 3, home: 'TUR', away: 'USA', match_datetime: '2026-06-25T20:00:00Z', venue: 'Inglewood, EUA' },
-  { id: 56, group: 'D', round: 3, home: 'PAR', away: 'AUS', match_datetime: '2026-06-25T20:00:00Z', venue: 'Santa Clara, EUA' },
+  { id: 55, group: 'D', round: 3, home: 'TUR', away: 'USA', match_datetime: '2026-06-26T02:00:00Z', venue: 'Inglewood, EUA' },
+  { id: 56, group: 'D', round: 3, home: 'PAR', away: 'AUS', match_datetime: '2026-06-26T02:00:00Z', venue: 'Santa Clara, EUA' },
   // Grupo E
   { id: 57, group: 'E', round: 3, home: 'ECU', away: 'GER', match_datetime: '2026-06-25T20:00:00Z', venue: 'East Rutherford, EUA' },
   { id: 58, group: 'E', round: 3, home: 'CUW', away: 'CIV', match_datetime: '2026-06-25T20:00:00Z', venue: 'Philadelphia, EUA' },
