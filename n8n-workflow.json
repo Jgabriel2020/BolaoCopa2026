@@ -149,6 +149,29 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [3472, 3600]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://zmxwhjmgsyzcuovepqss.supabase.co/rest/v1/rpc/refresh_profile_totals",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "COLE_AQUI_A_SERVICE_ROLE_KEY" },
+            { "name": "Authorization", "value": "Bearer COLE_AQUI_A_SERVICE_ROLE_KEY" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={}",
+        "options": {}
+      },
+      "id": "node-atualizar-totais",
+      "name": "Atualizar Totais",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [3696, 3600]
     }
   ],
   "connections": {
@@ -175,6 +198,9 @@
     },
     "Calcular Pontos": {
       "main": [[{ "node": "Salvar Pontos", "type": "main", "index": 0 }]]
+    },
+    "Salvar Pontos": {
+      "main": [[{ "node": "Atualizar Totais", "type": "main", "index": 0 }]]
     }
   },
   "pinData": {},
