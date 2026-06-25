@@ -99,13 +99,56 @@
     },
     {
       "parameters": {
-        "jsCode": "// ⚠️ Cole aqui a SERVICE_ROLE KEY do seu projeto Supabase\n// Supabase Dashboard → Project Settings → API → service_role\nconst SERVICE_KEY = 'COLE_AQUI_A_SERVICE_ROLE_KEY';\nconst URL = 'https://zmxwhjmgsyzcuovepqss.supabase.co';\n\nconst matchId   = $('Mapear e Filtrar Jogos').item.json.match_id;\nconst homeScore = $('Mapear e Filtrar Jogos').item.json.home_score;\nconst awayScore = $('Mapear e Filtrar Jogos').item.json.away_score;\n\nconst H = { 'apikey': SERVICE_KEY, 'Authorization': `Bearer ${SERVICE_KEY}`, 'Content-Type': 'application/json' };\n\nfunction outcome(h, a) { return h > a ? 1 : h < a ? -1 : 0; }\n\n// 1. Buscar todos os palpites do jogo\nconst predsRes = await fetch(`${URL}/rest/v1/predictions?match_id=eq.${matchId}&select=id,user_id,home_score,away_score`, { headers: H });\nconst preds = await predsRes.json();\n\nconst realOutcome = outcome(homeScore, awayScore);\nconst realDiff    = homeScore - awayScore;\n\n// 2. Calcular e gravar pontos de cada palpite\nfor (const p of preds) {\n  const predOutcome = outcome(p.home_score, p.away_score);\n  const predDiff    = p.home_score - p.away_score;\n  let pts;\n  if (p.home_score === homeScore && p.away_score === awayScore) pts = 3;\n  else if (predOutcome === realOutcome && realOutcome !== 0 && predDiff === realDiff) pts = 2;\n  else if (predOutcome === realOutcome) pts = 1;\n  else pts = 0;\n\n  await fetch(`${URL}/rest/v1/predictions?id=eq.${p.id}`, {\n    method: 'PATCH',\n    headers: { ...H, 'Prefer': 'return=minimal' },\n    body: JSON.stringify({ points: pts }),\n  });\n}\n\n// 3. Recalcular total_points de cada usuário afetado\nconst userIds = [...new Set(preds.map(p => p.user_id))];\nfor (const uid of userIds) {\n  const totRes = await fetch(\n    `${URL}/rest/v1/predictions?user_id=eq.${uid}&points=not.is.null&select=points`,\n    { headers: H }\n  );\n  const userPreds = await totRes.json();\n  const total = userPreds.reduce((s, p) => s + p.points, 0);\n\n  await fetch(`${URL}/rest/v1/profiles?id=eq.${uid}`, {\n    method: 'PATCH',\n    headers: { ...H, 'Prefer': 'return=minimal' },\n    body: JSON.stringify({ total_points: total }),\n  });\n}\n\nreturn [{ json: { match_id: matchId, palpites_atualizados: preds.length, usuarios: userIds.length } }];"
+        "method": "GET",
+        "url": "=https://zmxwhjmgsyzcuovepqss.supabase.co/rest/v1/predictions?match_id=eq.{{ $('Mapear e Filtrar Jogos').item.json.match_id }}&select=id,user_id,home_score,away_score",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpteHdoam1nc3l6Y3VvdmVwcXNzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODExMjk5NzMsImV4cCI6MjA5NjcwNTk3M30.429hD8d6_uksGL125V9XVvec7ySPtc3RqWxhEcWL4po" },
+            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpteHdoam1nc3l6Y3VvdmVwcXNzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODExMjk5NzMsImV4cCI6MjA5NjcwNTk3M30.429hD8d6_uksGL125V9XVvec7ySPtc3RqWxhEcWL4po" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-buscar-palpites",
+      "name": "Buscar Palpites",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [3024, 3600]
+    },
+    {
+      "parameters": {
+        "jsCode": "const homeScore = $('Mapear e Filtrar Jogos').item.json.home_score;\nconst awayScore = $('Mapear e Filtrar Jogos').item.json.away_score;\nconst preds = $input.first().json;\n\nfunction outcome(h, a) { return h > a ? 1 : h < a ? -1 : 0; }\n\nconst realOutcome = outcome(homeScore, awayScore);\nconst realDiff = homeScore - awayScore;\n\nif (!Array.isArray(preds) || preds.length === 0) return [];\n\nreturn preds.map(p => {\n  const po = outcome(p.home_score, p.away_score);\n  const pd = p.home_score - p.away_score;\n  let pts;\n  if (p.home_score === homeScore && p.away_score === awayScore) pts = 3;\n  else if (po === realOutcome && realOutcome !== 0 && pd === realDiff) pts = 2;\n  else if (po === realOutcome) pts = 1;\n  else pts = 0;\n  return { json: { id: p.id, points: pts } };\n});"
       },
       "id": "5baefc35-04f6-49da-ac60-fdcaea413f8c",
       "name": "Calcular Pontos",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [3024, 3600]
+      "position": [3248, 3600]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://zmxwhjmgsyzcuovepqss.supabase.co/rest/v1/predictions?id=eq.{{ $json.id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "COLE_AQUI_A_SERVICE_ROLE_KEY" },
+            { "name": "Authorization", "value": "Bearer COLE_AQUI_A_SERVICE_ROLE_KEY" },
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "Prefer", "value": "return=minimal" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ points: $json.points }) }}",
+        "options": {}
+      },
+      "id": "node-salvar-pontos",
+      "name": "Salvar Pontos",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [3472, 3600]
     }
   ],
   "connections": {
@@ -125,7 +168,13 @@
       ]
     },
     "Atualizar Placar no Supabase": {
+      "main": [[{ "node": "Buscar Palpites", "type": "main", "index": 0 }]]
+    },
+    "Buscar Palpites": {
       "main": [[{ "node": "Calcular Pontos", "type": "main", "index": 0 }]]
+    },
+    "Calcular Pontos": {
+      "main": [[{ "node": "Salvar Pontos", "type": "main", "index": 0 }]]
     }
   },
   "pinData": {},
