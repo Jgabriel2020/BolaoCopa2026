@@ -99,23 +99,56 @@
     },
     {
       "parameters": {
-        "operation": "executeQuery",
-        "query": "UPDATE public.predictions AS p SET points = CASE WHEN p.home_score = $2::int AND p.away_score = $3::int THEN 3 WHEN SIGN((p.home_score - p.away_score)::numeric) = SIGN(($2::int - $3::int)::numeric) AND ($2::int - $3::int) <> 0 AND (p.home_score - p.away_score) = ($2::int - $3::int) THEN 2 WHEN SIGN((p.home_score - p.away_score)::numeric) = SIGN(($2::int - $3::int)::numeric) THEN 1 ELSE 0 END WHERE p.match_id = $1::int",
-        "additionalFields": {
-          "queryParams": "={{ JSON.stringify([$('Mapear e Filtrar Jogos').item.json.match_id, $('Mapear e Filtrar Jogos').item.json.home_score, $('Mapear e Filtrar Jogos').item.json.away_score]) }}"
-        }
+        "method": "GET",
+        "url": "=https://zmxwhjmgsyzcuovepqss.supabase.co/rest/v1/predictions?match_id=eq.{{ $('Mapear e Filtrar Jogos').item.json.match_id }}&select=id,user_id,home_score,away_score",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpteHdoam1nc3l6Y3VvdmVwcXNzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODExMjk5NzMsImV4cCI6MjA5NjcwNTk3M30.429hD8d6_uksGL125V9XVvec7ySPtc3RqWxhEcWL4po" },
+            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpteHdoam1nc3l6Y3VvdmVwcXNzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODExMjk5NzMsImV4cCI6MjA5NjcwNTk3M30.429hD8d6_uksGL125V9XVvec7ySPtc3RqWxhEcWL4po" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-buscar-palpites",
+      "name": "Buscar Palpites",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [3024, 3600]
+    },
+    {
+      "parameters": {
+        "jsCode": "const homeScore = $('Mapear e Filtrar Jogos').item.json.home_score;\nconst awayScore = $('Mapear e Filtrar Jogos').item.json.away_score;\n\nfunction outcome(h, a) { return h > a ? 1 : h < a ? -1 : 0; }\nconst realOutcome = outcome(homeScore, awayScore);\nconst realDiff = homeScore - awayScore;\n\nconst raw = $input.all().map(i => i.json);\nconst preds = (raw.length === 1 && Array.isArray(raw[0])) ? raw[0] : raw;\n\n// Agrupar por pontuação: 1 PATCH por tier (máx 4) ao invés de 1 por palpite\nconst groups = {};\nfor (const p of preds) {\n  const po = outcome(p.home_score, p.away_score);\n  const pd = p.home_score - p.away_score;\n  let pts;\n  if (p.home_score === homeScore && p.away_score === awayScore) pts = 3;\n  else if (po === realOutcome && realOutcome !== 0 && pd === realDiff) pts = 2;\n  else if (po === realOutcome) pts = 1;\n  else pts = 0;\n  if (!groups[pts]) groups[pts] = [];\n  groups[pts].push(p.id);\n}\n\nreturn Object.entries(groups).map(([pts, ids]) => ({\n  json: { points: parseInt(pts), ids: ids.join(',') }\n}));"
       },
       "id": "5baefc35-04f6-49da-ac60-fdcaea413f8c",
-      "name": "Calcular e Salvar Pontos",
-      "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2.5,
-      "position": [3024, 3600],
-      "credentials": {
-        "postgres": {
-          "id": "COLE_O_ID_DA_CREDENTIAL",
-          "name": "Supabase Postgres"
-        }
-      }
+      "name": "Calcular Pontos",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3248, 3600]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://zmxwhjmgsyzcuovepqss.supabase.co/rest/v1/predictions?id=in.({{ $json.ids }})",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "COLE_AQUI_A_SERVICE_ROLE_KEY" },
+            { "name": "Authorization", "value": "Bearer COLE_AQUI_A_SERVICE_ROLE_KEY" },
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "Prefer", "value": "return=minimal" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ points: $json.points }) }}",
+        "options": {}
+      },
+      "id": "node-salvar-pontos",
+      "name": "Salvar Pontos",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [3472, 3600]
     }
   ],
   "connections": {
@@ -135,7 +168,13 @@
       ]
     },
     "Atualizar Placar no Supabase": {
-      "main": [[{ "node": "Calcular e Salvar Pontos", "type": "main", "index": 0 }]]
+      "main": [[{ "node": "Buscar Palpites", "type": "main", "index": 0 }]]
+    },
+    "Buscar Palpites": {
+      "main": [[{ "node": "Calcular Pontos", "type": "main", "index": 0 }]]
+    },
+    "Calcular Pontos": {
+      "main": [[{ "node": "Salvar Pontos", "type": "main", "index": 0 }]]
     }
   },
   "pinData": {},
