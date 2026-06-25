@@ -153,12 +153,13 @@
           "parameters": [
             { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpteHdoam1nc3l6Y3VvdmVwcXNzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODExMjk5NzMsImV4cCI6MjA5NjcwNTk3M30.429hD8d6_uksGL125V9XVvec7ySPtc3RqWxhEcWL4po" },
             { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpteHdoam1nc3l6Y3VvdmVwcXNzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODExMjk5NzMsImV4cCI6MjA5NjcwNTk3M30.429hD8d6_uksGL125V9XVvec7ySPtc3RqWxhEcWL4po" },
-            { "name": "Content-Type", "value": "application/json" }
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "Prefer", "value": "params=single-object" }
           ]
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ p_match_id: $json.match_id, p_home_score: $json.home_score, p_away_score: $json.away_score }) }}",
+        "jsonBody": "={{ JSON.stringify({ p_match_id: $('Mapear e Filtrar Jogos').item.json.match_id, p_home_score: $('Mapear e Filtrar Jogos').item.json.home_score, p_away_score: $('Mapear e Filtrar Jogos').item.json.away_score }) }}",
         "options": {}
       },
       "id": "node-rpc",
