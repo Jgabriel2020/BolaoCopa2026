@@ -1,5 +1,4 @@
 {
-  "name": "Bolão Copa 2026 - Atualizar Resultados",
   "nodes": [
     {
       "parameters": {
@@ -7,51 +6,11 @@
           "interval": [{ "field": "minutes", "minutesInterval": 1 }]
         }
       },
-      "id": "node-schedule",
+      "id": "7f797a07-ed49-40ee-b619-2203009ddb57",
       "name": "A cada 1 min",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
-      "position": [240, 300]
-    },
-    {
-      "parameters": {
-        "jsCode": "// Verifica se o momento atual está dentro de uma janela de jogo\n// Janela: do início do jogo até +2h após o início\nconst MATCHES = [\n  {id:1,dt:'2026-06-11T19:00:00Z'},{id:2,dt:'2026-06-12T02:00:00Z'},\n  {id:3,dt:'2026-06-12T19:00:00Z'},{id:4,dt:'2026-06-13T01:00:00Z'},\n  {id:5,dt:'2026-06-13T19:00:00Z'},{id:6,dt:'2026-06-13T22:00:00Z'},\n  {id:7,dt:'2026-06-14T01:00:00Z'},{id:8,dt:'2026-06-14T04:00:00Z'},\n  {id:9,dt:'2026-06-14T17:00:00Z'},{id:10,dt:'2026-06-14T23:00:00Z'},\n  {id:11,dt:'2026-06-15T20:00:00Z'},{id:12,dt:'2026-06-15T02:00:00Z'},\n  {id:13,dt:'2026-06-15T17:00:00Z'},{id:14,dt:'2026-06-15T22:00:00Z'},\n  {id:15,dt:'2026-06-15T22:00:00Z'},{id:16,dt:'2026-06-16T04:00:00Z'},\n  {id:17,dt:'2026-06-16T19:00:00Z'},{id:18,dt:'2026-06-16T22:00:00Z'},\n  {id:19,dt:'2026-06-17T01:00:00Z'},{id:20,dt:'2026-06-17T04:00:00Z'},\n  {id:21,dt:'2026-06-17T17:00:00Z'},{id:22,dt:'2026-06-17T20:00:00Z'},\n  {id:23,dt:'2026-06-17T23:00:00Z'},{id:24,dt:'2026-06-18T02:00:00Z'},\n  {id:25,dt:'2026-06-18T16:00:00Z'},{id:26,dt:'2026-06-18T19:00:00Z'},\n  {id:27,dt:'2026-06-18T22:00:00Z'},{id:28,dt:'2026-06-19T01:00:00Z'},\n  {id:29,dt:'2026-06-19T19:00:00Z'},{id:30,dt:'2026-06-19T22:00:00Z'},\n  {id:31,dt:'2026-06-20T01:00:00Z'},{id:32,dt:'2026-06-20T04:00:00Z'},\n  {id:33,dt:'2026-06-20T17:00:00Z'},{id:34,dt:'2026-06-20T20:00:00Z'},\n  {id:35,dt:'2026-06-21T00:00:00Z'},{id:36,dt:'2026-06-21T04:00:00Z'},\n  {id:37,dt:'2026-06-21T16:00:00Z'},{id:38,dt:'2026-06-21T19:00:00Z'},\n  {id:39,dt:'2026-06-21T22:00:00Z'},{id:40,dt:'2026-06-22T01:00:00Z'},\n  {id:41,dt:'2026-06-22T17:00:00Z'},{id:42,dt:'2026-06-22T21:00:00Z'},\n  {id:43,dt:'2026-06-23T00:00:00Z'},{id:44,dt:'2026-06-23T03:00:00Z'},\n  {id:45,dt:'2026-06-23T17:00:00Z'},{id:46,dt:'2026-06-23T20:00:00Z'},\n  {id:47,dt:'2026-06-23T23:00:00Z'},{id:48,dt:'2026-06-24T02:00:00Z'},\n  {id:49,dt:'2026-06-24T16:00:00Z'},{id:50,dt:'2026-06-24T16:00:00Z'},\n  {id:51,dt:'2026-06-24T19:00:00Z'},{id:52,dt:'2026-06-24T19:00:00Z'},\n  {id:53,dt:'2026-06-24T22:00:00Z'},{id:54,dt:'2026-06-24T22:00:00Z'},\n  {id:55,dt:'2026-06-25T20:00:00Z'},{id:56,dt:'2026-06-25T20:00:00Z'},\n  {id:57,dt:'2026-06-25T20:00:00Z'},{id:58,dt:'2026-06-25T20:00:00Z'},\n  {id:59,dt:'2026-06-25T23:00:00Z'},{id:60,dt:'2026-06-25T23:00:00Z'},\n  {id:61,dt:'2026-06-26T19:00:00Z'},{id:62,dt:'2026-06-26T19:00:00Z'},\n  {id:63,dt:'2026-06-27T00:00:00Z'},{id:64,dt:'2026-06-27T00:00:00Z'},\n  {id:65,dt:'2026-06-27T03:00:00Z'},{id:66,dt:'2026-06-27T03:00:00Z'},\n  {id:67,dt:'2026-06-27T21:00:00Z'},{id:68,dt:'2026-06-27T21:00:00Z'},\n  {id:69,dt:'2026-06-27T23:30:00Z'},{id:70,dt:'2026-06-27T23:30:00Z'},\n  {id:71,dt:'2026-06-28T02:00:00Z'},{id:72,dt:'2026-06-28T02:00:00Z'}\n];\n\nconst now = Date.now();\nconst TWO_HOURS = 2 * 60 * 60 * 1000;\n\nconst activeMatch = MATCHES.find(m => {\n  const start = new Date(m.dt).getTime();\n  return now >= start && now <= start + TWO_HOURS;\n});\n\nif (activeMatch) {\n  console.log('Janela ativa - jogo ID:', activeMatch.id, '| Início:', activeMatch.dt);\n  return [{ json: { active: true, match_id: activeMatch.id } }];\n}\n\nconsole.log('Sem jogo em andamento agora. Pulando execução.');\nreturn [{ json: { active: false } }];"
-      },
-      "id": "node-check-window",
-      "name": "Verificar Janela de Jogo",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [460, 300]
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "strict",
-            "version": 1
-          },
-          "conditions": [
-            {
-              "id": "cond-window",
-              "leftValue": "={{ $json.active }}",
-              "rightValue": true,
-              "operator": {
-                "type": "boolean",
-                "operation": "equal"
-              }
-            }
-          ],
-          "combinator": "and"
-        },
-        "options": {}
-      },
-      "id": "node-if-window",
-      "name": "Janela ativa?",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2,
-      "position": [680, 300]
+      "position": [1904, 3680]
     },
     {
       "parameters": {
@@ -65,21 +24,21 @@
         },
         "options": {}
       },
-      "id": "node-api",
+      "id": "cd9fa3db-3913-4dea-a4c8-e1ea1b5c9f27",
       "name": "Buscar Resultados (football-data)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [900, 220]
+      "position": [2176, 3680]
     },
     {
       "parameters": {
         "jsCode": "const MAP = {\n  'MEX':'MEX','RSA':'RSA','KOR':'KOR','CZE':'CZE','CAN':'CAN',\n  'BIH':'BIH','QAT':'QAT','SUI':'SUI','BRA':'BRA','MAR':'MAR',\n  'HAI':'HAI','SCO':'SCO','USA':'USA','PAR':'PAR','AUS':'AUS',\n  'TUR':'TUR','GER':'GER','CUW':'CUW','CIV':'CIV','ECU':'ECU',\n  'NED':'NED','JPN':'JPN','SWE':'SWE','TUN':'TUN','ESP':'ESP',\n  'CPV':'CPV','SAU':'KSA','URU':'URU','BEL':'BEL','EGY':'EGY',\n  'IRN':'IRN','NZL':'NZL','FRA':'FRA','SEN':'SEN','IRQ':'IRQ',\n  'NOR':'NOR','ARG':'ARG','ALG':'ALG','AUT':'AUT','JOR':'JOR',\n  'POR':'POR','COD':'COD','ENG':'ENG','CRO':'CRO','GHA':'GHA',\n  'PAN':'PAN','UZB':'UZB','COL':'COL','KSA':'KSA','DZA':'ALG'\n};\n\nconst MATCHES = [\n  {id:1,home:'MEX',away:'RSA',dt:'2026-06-11T19:00:00Z'},\n  {id:2,home:'KOR',away:'CZE',dt:'2026-06-12T02:00:00Z'},\n  {id:3,home:'CAN',away:'BIH',dt:'2026-06-12T19:00:00Z'},\n  {id:4,home:'USA',away:'PAR',dt:'2026-06-13T01:00:00Z'},\n  {id:5,home:'QAT',away:'SUI',dt:'2026-06-13T19:00:00Z'},\n  {id:6,home:'BRA',away:'MAR',dt:'2026-06-13T22:00:00Z'},\n  {id:7,home:'HAI',away:'SCO',dt:'2026-06-14T01:00:00Z'},\n  {id:8,home:'AUS',away:'TUR',dt:'2026-06-14T04:00:00Z'},\n  {id:9,home:'GER',away:'CUW',dt:'2026-06-14T17:00:00Z'},\n  {id:10,home:'CIV',away:'ECU',dt:'2026-06-14T23:00:00Z'},\n  {id:11,home:'NED',away:'JPN',dt:'2026-06-15T20:00:00Z'},\n  {id:12,home:'SWE',away:'TUN',dt:'2026-06-15T02:00:00Z'},\n  {id:13,home:'ESP',away:'CPV',dt:'2026-06-15T17:00:00Z'},\n  {id:14,home:'BEL',away:'EGY',dt:'2026-06-15T22:00:00Z'},\n  {id:15,home:'KSA',away:'URU',dt:'2026-06-15T22:00:00Z'},\n  {id:16,home:'IRN',away:'NZL',dt:'2026-06-16T04:00:00Z'},\n  {id:17,home:'FRA',away:'SEN',dt:'2026-06-16T19:00:00Z'},\n  {id:18,home:'IRQ',away:'NOR',dt:'2026-06-16T22:00:00Z'},\n  {id:19,home:'ARG',away:'ALG',dt:'2026-06-17T01:00:00Z'},\n  {id:20,home:'AUT',away:'JOR',dt:'2026-06-17T04:00:00Z'},\n  {id:21,home:'POR',away:'COD',dt:'2026-06-17T17:00:00Z'},\n  {id:22,home:'ENG',away:'CRO',dt:'2026-06-17T20:00:00Z'},\n  {id:23,home:'GHA',away:'PAN',dt:'2026-06-17T23:00:00Z'},\n  {id:24,home:'UZB',away:'COL',dt:'2026-06-18T02:00:00Z'},\n  {id:25,home:'CZE',away:'RSA',dt:'2026-06-18T16:00:00Z'},\n  {id:26,home:'SUI',away:'BIH',dt:'2026-06-18T19:00:00Z'},\n  {id:27,home:'CAN',away:'QAT',dt:'2026-06-18T22:00:00Z'},\n  {id:28,home:'MEX',away:'KOR',dt:'2026-06-19T01:00:00Z'},\n  {id:29,home:'USA',away:'AUS',dt:'2026-06-19T19:00:00Z'},\n  {id:30,home:'SCO',away:'MAR',dt:'2026-06-19T22:00:00Z'},\n  {id:31,home:'BRA',away:'HAI',dt:'2026-06-20T01:00:00Z'},\n  {id:32,home:'TUR',away:'PAR',dt:'2026-06-20T04:00:00Z'},\n  {id:33,home:'NED',away:'SWE',dt:'2026-06-20T17:00:00Z'},\n  {id:34,home:'GER',away:'CIV',dt:'2026-06-20T20:00:00Z'},\n  {id:35,home:'ECU',away:'CUW',dt:'2026-06-21T00:00:00Z'},\n  {id:36,home:'TUN',away:'JPN',dt:'2026-06-21T04:00:00Z'},\n  {id:37,home:'ESP',away:'KSA',dt:'2026-06-21T16:00:00Z'},\n  {id:38,home:'BEL',away:'IRN',dt:'2026-06-21T19:00:00Z'},\n  {id:39,home:'URU',away:'CPV',dt:'2026-06-21T22:00:00Z'},\n  {id:40,home:'NZL',away:'EGY',dt:'2026-06-22T01:00:00Z'},\n  {id:41,home:'ARG',away:'AUT',dt:'2026-06-22T17:00:00Z'},\n  {id:42,home:'FRA',away:'IRQ',dt:'2026-06-22T21:00:00Z'},\n  {id:43,home:'NOR',away:'SEN',dt:'2026-06-23T00:00:00Z'},\n  {id:44,home:'JOR',away:'ALG',dt:'2026-06-23T03:00:00Z'},\n  {id:45,home:'POR',away:'UZB',dt:'2026-06-23T17:00:00Z'},\n  {id:46,home:'ENG',away:'GHA',dt:'2026-06-23T20:00:00Z'},\n  {id:47,home:'PAN',away:'CRO',dt:'2026-06-23T23:00:00Z'},\n  {id:48,home:'COL',away:'COD',dt:'2026-06-24T02:00:00Z'},\n  {id:49,home:'MEX',away:'CZE',dt:'2026-06-24T16:00:00Z'},\n  {id:50,home:'RSA',away:'KOR',dt:'2026-06-24T16:00:00Z'},\n  {id:51,home:'SUI',away:'CAN',dt:'2026-06-24T19:00:00Z'},\n  {id:52,home:'BIH',away:'QAT',dt:'2026-06-24T19:00:00Z'},\n  {id:53,home:'SCO',away:'BRA',dt:'2026-06-24T22:00:00Z'},\n  {id:54,home:'MAR',away:'HAI',dt:'2026-06-24T22:00:00Z'},\n  {id:55,home:'TUR',away:'USA',dt:'2026-06-25T20:00:00Z'},\n  {id:56,home:'PAR',away:'AUS',dt:'2026-06-25T20:00:00Z'},\n  {id:57,home:'ECU',away:'GER',dt:'2026-06-25T20:00:00Z'},\n  {id:58,home:'CUW',away:'CIV',dt:'2026-06-25T20:00:00Z'},\n  {id:59,home:'JPN',away:'SWE',dt:'2026-06-25T23:00:00Z'},\n  {id:60,home:'TUN',away:'NED',dt:'2026-06-25T23:00:00Z'},\n  {id:61,home:'NOR',away:'FRA',dt:'2026-06-26T19:00:00Z'},\n  {id:62,home:'SEN',away:'IRQ',dt:'2026-06-26T19:00:00Z'},\n  {id:63,home:'CPV',away:'KSA',dt:'2026-06-27T00:00:00Z'},\n  {id:64,home:'URU',away:'ESP',dt:'2026-06-27T00:00:00Z'},\n  {id:65,home:'EGY',away:'IRN',dt:'2026-06-27T03:00:00Z'},\n  {id:66,home:'NZL',away:'BEL',dt:'2026-06-27T03:00:00Z'},\n  {id:67,home:'PAN',away:'ENG',dt:'2026-06-27T21:00:00Z'},\n  {id:68,home:'CRO',away:'GHA',dt:'2026-06-27T21:00:00Z'},\n  {id:69,home:'COL',away:'POR',dt:'2026-06-27T23:30:00Z'},\n  {id:70,home:'COD',away:'UZB',dt:'2026-06-27T23:30:00Z'},\n  {id:71,home:'JOR',away:'ARG',dt:'2026-06-28T02:00:00Z'},\n  {id:72,home:'ALG',away:'AUT',dt:'2026-06-28T02:00:00Z'}\n];\n\nconst now = Date.now();\nconst apiMatches = $input.first().json.matches || [];\nconst toUpdate = [];\n\nfor (const apiM of apiMatches) {\n  if (apiM.status !== 'FINISHED') continue;\n  const score = apiM.score?.fullTime;\n  if (score?.home == null || score?.away == null) continue;\n\n  const apiHome = MAP[apiM.homeTeam?.tla] || apiM.homeTeam?.tla;\n  const apiAway = MAP[apiM.awayTeam?.tla] || apiM.awayTeam?.tla;\n\n  const local = MATCHES.find(m => m.home === apiHome && m.away === apiAway);\n  if (!local) continue;\n\n  toUpdate.push({ match_id: local.id, home_score: score.home, away_score: score.away });\n}\n\nconsole.log('Jogos para atualizar:', toUpdate.length);\nreturn toUpdate.length > 0 ? toUpdate.map(item => ({ json: item })) : [{ json: { match_id: 0 } }];"
       },
-      "id": "node-code",
+      "id": "76e7bab7-97b0-450d-a744-43b0ea83dcd0",
       "name": "Mapear e Filtrar Jogos",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1120, 220]
+      "position": [2368, 3680]
     },
     {
       "parameters": {
@@ -95,30 +54,24 @@
               "id": "cond-1",
               "leftValue": "={{ $input.all().length }}",
               "rightValue": 0,
-              "operator": {
-                "type": "number",
-                "operation": "gt"
-              }
+              "operator": { "type": "number", "operation": "gt" }
             },
             {
               "id": "cond-2",
               "leftValue": "={{ $json.match_id }}",
               "rightValue": 0,
-              "operator": {
-                "type": "number",
-                "operation": "gt"
-              }
+              "operator": { "type": "number", "operation": "gt" }
             }
           ],
           "combinator": "and"
         },
         "options": {}
       },
-      "id": "node-if",
+      "id": "295cbd3d-8867-48b5-ac36-4b2032828fb0",
       "name": "Tem jogos para atualizar?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [1340, 220]
+      "position": [2592, 3680]
     },
     {
       "parameters": {
@@ -138,11 +91,11 @@
         "jsonBody": "={{ JSON.stringify({ home_score: $json.home_score, away_score: $json.away_score, status: 'finished' }) }}",
         "options": {}
       },
-      "id": "node-supabase-update",
+      "id": "c45884d3-050b-4596-852e-b711e41d9e51",
       "name": "Atualizar Placar no Supabase",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1560, 140]
+      "position": [2800, 3600]
     },
     {
       "parameters": {
@@ -162,25 +115,16 @@
         "jsonBody": "={{ JSON.stringify({ p_match_id: $('Mapear e Filtrar Jogos').item.json.match_id, p_home_score: $('Mapear e Filtrar Jogos').item.json.home_score, p_away_score: $('Mapear e Filtrar Jogos').item.json.away_score }) }}",
         "options": {}
       },
-      "id": "node-rpc",
+      "id": "5baefc35-04f6-49da-ac60-fdcaea413f8c",
       "name": "Calcular Pontos",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1780, 140]
+      "position": [3024, 3600]
     }
   ],
   "connections": {
     "A cada 1 min": {
-      "main": [[{ "node": "Verificar Janela de Jogo", "type": "main", "index": 0 }]]
-    },
-    "Verificar Janela de Jogo": {
-      "main": [[{ "node": "Janela ativa?", "type": "main", "index": 0 }]]
-    },
-    "Janela ativa?": {
-      "main": [
-        [{ "node": "Buscar Resultados (football-data)", "type": "main", "index": 0 }],
-        []
-      ]
+      "main": [[{ "node": "Buscar Resultados (football-data)", "type": "main", "index": 0 }]]
     },
     "Buscar Resultados (football-data)": {
       "main": [[{ "node": "Mapear e Filtrar Jogos", "type": "main", "index": 0 }]]
@@ -198,10 +142,9 @@
       "main": [[{ "node": "Calcular Pontos", "type": "main", "index": 0 }]]
     }
   },
-  "settings": { "executionOrder": "v1" },
-  "staticData": null,
-  "tags": [],
-  "triggerCount": 1,
-  "updatedAt": "2026-06-19T00:00:00.000Z",
-  "versionId": "6"
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "d117ea45bc33fa797e2742ccb51a9a9f1db4eaa28394d14f826234ab966c2c84"
+  }
 }
