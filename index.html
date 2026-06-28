@@ -660,7 +660,7 @@ function pageResults() {
                 <span class="text-slate-500 font-bold text-lg">×</span>
                 <span class="text-3xl font-black ${aw?'text-gold':'text-white'}">${db.away_score}</span>
               </div>
-              <span class="text-xs text-slate-500 mt-0.5">${fmtDay(m.dt).split(',')[0]} · ${m.group ? 'GRP '+m.group : 'Oitavas'}</span>
+              <span class="text-xs text-slate-500 mt-0.5">${fmtDay(m.dt).split(',')[0]} · ${m.group==='X' ? '16avos de Final' : m.group ? 'GRP '+m.group : ''}</span>
             </div>
             <div class="flex-1 flex flex-col items-center gap-1">
               <span class="text-3xl">${away.flag}</span>
@@ -708,7 +708,7 @@ function pageDashboard() {
 
 function buildPills() {
   if (STATE.dashView === 'rodada') {
-    const rounds = [{v:1,l:'Rodada 1'},{v:2,l:'Rodada 2'},{v:3,l:'Rodada 3'},{v:4,l:'Oitavas'}]
+    const rounds = [{v:1,l:'Rodada 1'},{v:2,l:'Rodada 2'},{v:3,l:'Rodada 3'},{v:4,l:'16avos'}]
     return rounds.map(({v,l}) => `
       <button onclick="setFilter(${v})"
         class="flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-semibold border transition-all
@@ -838,7 +838,7 @@ function buildCard(match) {
   <div class="match-card bg-card border border-border rounded-2xl overflow-hidden hover:border-slate-600">
     <div class="flex items-center justify-between px-4 pt-3 pb-2 border-b border-border">
       <div class="flex items-center gap-2">
-        <span class="text-xs font-bold px-1.5 py-0.5 rounded ${groupColor(match.group)}">GRP ${match.group}</span>
+        <span class="text-xs font-bold px-1.5 py-0.5 rounded ${groupColor(match.group)}">${match.group==='X' ? '16avos' : 'GRP '+match.group}</span>
         <span class="text-slate-500 text-xs">R${match.round}</span>
       </div>
       <div class="flex items-center gap-2">
