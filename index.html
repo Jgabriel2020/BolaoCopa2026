@@ -227,22 +227,22 @@ const MATCHES = [
   {id:71,group:'J',round:3,home:'JOR',away:'ARG',dt:'2026-06-28T02:00Z',venue:'Arlington'},
   {id:72,group:'J',round:3,home:'ALG',away:'AUT',dt:'2026-06-28T02:00Z',venue:'Kansas City'},
   // OITAVAS DE FINAL
-  {id:73, group:'16avos',round:4,home:'RSA',away:'CAN',dt:'2026-06-28T19:00Z',venue:''},
-  {id:74, group:'16avos',round:4,home:'BRA',away:'JPN',dt:'2026-06-29T17:00Z',venue:''},
-  {id:75, group:'16avos',round:4,home:'GER',away:'PAR',dt:'2026-06-29T20:30Z',venue:''},
-  {id:76, group:'16avos',round:4,home:'NED',away:'MAR',dt:'2026-06-30T01:00Z',venue:''},
-  {id:77, group:'16avos',round:4,home:'CIV',away:'NOR',dt:'2026-06-30T17:00Z',venue:''},
-  {id:78, group:'16avos',round:4,home:'FRA',away:'SWE',dt:'2026-06-30T21:00Z',venue:''},
-  {id:79, group:'16avos',round:4,home:'MEX',away:'ECU',dt:'2026-07-01T01:00Z',venue:''},
-  {id:80, group:'16avos',round:4,home:'ENG',away:'COD',dt:'2026-07-01T16:00Z',venue:''},
-  {id:81, group:'16avos',round:4,home:'BEL',away:'SEN',dt:'2026-07-01T20:00Z',venue:''},
-  {id:82, group:'16avos',round:4,home:'USA',away:'BIH',dt:'2026-07-02T00:00Z',venue:''},
-  {id:83, group:'16avos',round:4,home:'ESP',away:'AUT',dt:'2026-07-02T19:00Z',venue:''},
-  {id:84, group:'16avos',round:4,home:'POR',away:'CRO',dt:'2026-07-02T23:00Z',venue:''},
-  {id:85, group:'16avos',round:4,home:'SUI',away:'ALG',dt:'2026-07-03T03:00Z',venue:''},
-  {id:86, group:'16avos',round:4,home:'AUS',away:'EGY',dt:'2026-07-03T18:00Z',venue:''},
-  {id:87, group:'16avos',round:4,home:'ARG',away:'CPV',dt:'2026-07-03T22:00Z',venue:''},
-  {id:88, group:'16avos',round:4,home:'COL',away:'GHA',dt:'2026-07-04T01:30Z',venue:''},
+  {id:73, group:'X',round:4,home:'RSA',away:'CAN',dt:'2026-06-28T19:00Z',venue:''},
+  {id:74, group:'X',round:4,home:'BRA',away:'JPN',dt:'2026-06-29T17:00Z',venue:''},
+  {id:75, group:'X',round:4,home:'GER',away:'PAR',dt:'2026-06-29T20:30Z',venue:''},
+  {id:76, group:'X',round:4,home:'NED',away:'MAR',dt:'2026-06-30T01:00Z',venue:''},
+  {id:77, group:'X',round:4,home:'CIV',away:'NOR',dt:'2026-06-30T17:00Z',venue:''},
+  {id:78, group:'X',round:4,home:'FRA',away:'SWE',dt:'2026-06-30T21:00Z',venue:''},
+  {id:79, group:'X',round:4,home:'MEX',away:'ECU',dt:'2026-07-01T01:00Z',venue:''},
+  {id:80, group:'X',round:4,home:'ENG',away:'COD',dt:'2026-07-01T16:00Z',venue:''},
+  {id:81, group:'X',round:4,home:'BEL',away:'SEN',dt:'2026-07-01T20:00Z',venue:''},
+  {id:82, group:'X',round:4,home:'USA',away:'BIH',dt:'2026-07-02T00:00Z',venue:''},
+  {id:83, group:'X',round:4,home:'ESP',away:'AUT',dt:'2026-07-02T19:00Z',venue:''},
+  {id:84, group:'X',round:4,home:'POR',away:'CRO',dt:'2026-07-02T23:00Z',venue:''},
+  {id:85, group:'X',round:4,home:'SUI',away:'ALG',dt:'2026-07-03T03:00Z',venue:''},
+  {id:86, group:'X',round:4,home:'AUS',away:'EGY',dt:'2026-07-03T18:00Z',venue:''},
+  {id:87, group:'X',round:4,home:'ARG',away:'CPV',dt:'2026-07-03T22:00Z',venue:''},
+  {id:88, group:'X',round:4,home:'COL',away:'GHA',dt:'2026-07-04T01:30Z',venue:''},
 ]
 
 // Sessão local (sem Supabase Auth)
@@ -1304,7 +1304,7 @@ async function pageMyPicks() {
           return `
           <div class="bg-card border border-border rounded-2xl px-4 py-3 opacity-50">
             <div class="flex items-center justify-between mb-2">
-              <span class="text-xs text-slate-500">${m.group==='16avos' ? '16avos de Final' : m.group ? 'Grupo '+m.group : '16avos de Final'} · ${fmtFull(m.dt)}</span>
+              <span class="text-xs text-slate-500">${m.group==='X' ? '16avos de Final' : m.group ? 'Grupo '+m.group : ''} · ${fmtFull(m.dt)}</span>
               <span class="text-xs text-slate-600">sem palpite</span>
             </div>
             <div class="flex items-center gap-3">
@@ -1330,7 +1330,7 @@ async function pageMyPicks() {
         return `
         <div class="bg-card border ${border} rounded-2xl px-4 py-3">
           <div class="flex items-center justify-between mb-2">
-            <span class="text-xs text-slate-500">${m.group==='16avos' ? '16avos de Final' : m.group ? 'Grupo '+m.group : '16avos de Final'} · ${fmtFull(m.dt)}</span>
+            <span class="text-xs text-slate-500">${m.group==='X' ? '16avos de Final' : m.group ? 'Grupo '+m.group : ''} · ${fmtFull(m.dt)}</span>
             ${ptsBadge}
           </div>
           <div class="flex items-center gap-3">
@@ -1432,7 +1432,7 @@ async function pageAdmin() {
     return `
     <div class="bg-card border border-border rounded-2xl p-4" id="admin-card-${m.id}">
       <div class="flex items-center justify-between mb-3 text-xs">
-        <span class="text-slate-400 font-bold">${m.group==='16avos' ? '16avos de Final' : m.group ? 'Grupo '+m.group : '16avos de Final'} · R${m.round}</span>
+        <span class="text-slate-400 font-bold">${m.group==='X' ? '16avos de Final' : m.group ? 'Grupo '+m.group : ''} · R${m.round}</span>
         <div class="flex items-center gap-2">
           ${hasResult ? '<span class="bg-green-900 text-green-400 px-2 py-0.5 rounded-full font-bold">✓ Salvo</span>' : ''}
           <span class="text-slate-500">${fmtFull(m.dt)}</span>
