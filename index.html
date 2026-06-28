@@ -640,9 +640,9 @@ function pageResults() {
   const byRound = {1:[], 2:[], 3:[]}
   finished.forEach(m => byRound[m.round].push(m))
 
-  const sections = [3,2,1].filter(r => byRound[r].length).map(r => `
+  const sections = [4,3,2,1].filter(r => byRound[r]?.length).map(r => `
     <div class="mb-8">
-      <h2 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-3 px-1">Rodada ${r}</h2>
+      <h2 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-3 px-1">${r===4?'16avos de Final':'Rodada '+r}</h2>
       <div class="flex flex-col gap-3">
         ${byRound[r].map(m => {
           const db = STATE.dbMatches[m.id]
@@ -1178,9 +1178,9 @@ async function loadRanking() {
   // Filtro por rodada
   const roundFilter = `
     <div class="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
-      ${[null,1,2,3].map(r => {
+      ${[null,1,2,3,4].map(r => {
         const active = STATE.rankRound === r
-        const label = r === null ? 'Todas rodadas' : 'Rodada ' + r
+        const label = r === null ? 'Todas rodadas' : r === 4 ? '16avos' : 'Rodada ' + r
         return `<button onclick="switchRankRound(${r})"
           class="flex-shrink-0 px-4 py-2 rounded-full text-sm font-bold border transition-all
             ${active ? 'bg-navy border-gold text-gold' : 'border-border text-slate-500 hover:border-slate-400 hover:text-slate-300'}">
@@ -1189,7 +1189,7 @@ async function loadRanking() {
     </div>`
 
   const title = STATE.currentBolao ? STATE.currentBolao.name : 'Ranking Geral'
-  const subtitle = STATE.rankRound ? `Rodada ${STATE.rankRound} · ${data?.length||0} participantes` : `${data?.length||0} participantes · atualizado em tempo real`
+  const subtitle = STATE.rankRound ? `${STATE.rankRound===4?'16avos':'Rodada '+STATE.rankRound} · ${data?.length||0} participantes` : `${data?.length||0} participantes · atualizado em tempo real`
   const icon  = STATE.currentBolao ? '🎱' : '🏆'
 
   wrap.innerHTML = `
@@ -1359,7 +1359,7 @@ async function pageMyPicks() {
   const tabsHtml = rounds.map(r =>
     `<button data-mp-round="${r}" onclick="mpSetRound(${r})"
       class="px-4 py-1.5 rounded-full text-sm font-bold ${r===window._mpRound?'bg-gold text-navy':'text-slate-400 hover:text-white'} transition-all">
-      Rodada ${r}
+      ${r===4 ? '16avos' : 'Rodada '+r}
     </button>`
   ).join('')
 
