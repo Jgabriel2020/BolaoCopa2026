@@ -226,6 +226,23 @@ const MATCHES = [
   {id:70,group:'K',round:3,home:'COD',away:'UZB',dt:'2026-06-27T23:30Z',venue:'Atlanta'},
   {id:71,group:'J',round:3,home:'JOR',away:'ARG',dt:'2026-06-28T02:00Z',venue:'Arlington'},
   {id:72,group:'J',round:3,home:'ALG',away:'AUT',dt:'2026-06-28T02:00Z',venue:'Kansas City'},
+  // OITAVAS DE FINAL
+  {id:73, group:'X',round:4,home:'RSA',away:'CAN',dt:'2026-06-28T19:00Z',venue:''},
+  {id:74, group:'X',round:4,home:'BRA',away:'JPN',dt:'2026-06-29T17:00Z',venue:''},
+  {id:75, group:'X',round:4,home:'GER',away:'PAR',dt:'2026-06-29T20:30Z',venue:''},
+  {id:76, group:'X',round:4,home:'NED',away:'MAR',dt:'2026-06-30T01:00Z',venue:''},
+  {id:77, group:'X',round:4,home:'CIV',away:'NOR',dt:'2026-06-30T17:00Z',venue:''},
+  {id:78, group:'X',round:4,home:'FRA',away:'SWE',dt:'2026-06-30T21:00Z',venue:''},
+  {id:79, group:'X',round:4,home:'MEX',away:'ECU',dt:'2026-07-01T01:00Z',venue:''},
+  {id:80, group:'X',round:4,home:'ENG',away:'COD',dt:'2026-07-01T16:00Z',venue:''},
+  {id:81, group:'X',round:4,home:'BEL',away:'SEN',dt:'2026-07-01T20:00Z',venue:''},
+  {id:82, group:'X',round:4,home:'USA',away:'BIH',dt:'2026-07-02T00:00Z',venue:''},
+  {id:83, group:'X',round:4,home:'ESP',away:'AUT',dt:'2026-07-02T19:00Z',venue:''},
+  {id:84, group:'X',round:4,home:'POR',away:'CRO',dt:'2026-07-02T23:00Z',venue:''},
+  {id:85, group:'X',round:4,home:'SUI',away:'ALG',dt:'2026-07-03T03:00Z',venue:''},
+  {id:86, group:'X',round:4,home:'AUS',away:'EGY',dt:'2026-07-03T18:00Z',venue:''},
+  {id:87, group:'X',round:4,home:'ARG',away:'CPV',dt:'2026-07-03T22:00Z',venue:''},
+  {id:88, group:'X',round:4,home:'COL',away:'GHA',dt:'2026-07-04T01:30Z',venue:''},
 ]
 
 // Sessão local (sem Supabase Auth)
@@ -623,9 +640,9 @@ function pageResults() {
   const byRound = {1:[], 2:[], 3:[]}
   finished.forEach(m => byRound[m.round].push(m))
 
-  const sections = [3,2,1].filter(r => byRound[r].length).map(r => `
+  const sections = [4,3,2,1].filter(r => byRound[r]?.length).map(r => `
     <div class="mb-8">
-      <h2 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-3 px-1">Rodada ${r}</h2>
+      <h2 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-3 px-1">${r===4?'16avos de Final':'Rodada '+r}</h2>
       <div class="flex flex-col gap-3">
         ${byRound[r].map(m => {
           const db = STATE.dbMatches[m.id]
@@ -643,7 +660,7 @@ function pageResults() {
                 <span class="text-slate-500 font-bold text-lg">×</span>
                 <span class="text-3xl font-black ${aw?'text-gold':'text-white'}">${db.away_score}</span>
               </div>
-              <span class="text-xs text-slate-500 mt-0.5">${fmtDay(m.dt).split(',')[0]} · GRP ${m.group}</span>
+              <span class="text-xs text-slate-500 mt-0.5">${fmtDay(m.dt).split(',')[0]} · ${m.group==='X' ? '16avos de Final' : m.group ? 'GRP '+m.group : ''}</span>
             </div>
             <div class="flex-1 flex flex-col items-center gap-1">
               <span class="text-3xl">${away.flag}</span>
@@ -691,11 +708,12 @@ function pageDashboard() {
 
 function buildPills() {
   if (STATE.dashView === 'rodada') {
-    return [1,2,3].map(r => `
-      <button onclick="setFilter(${r})"
+    const rounds = [{v:1,l:'Rodada 1'},{v:2,l:'Rodada 2'},{v:3,l:'Rodada 3'},{v:4,l:'16avos'}]
+    return rounds.map(({v,l}) => `
+      <button onclick="setFilter(${v})"
         class="flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-semibold border transition-all
-          ${STATE.dashFilter===r?'bg-gold border-gold text-night':'border-border text-slate-400 hover:border-gold hover:text-gold'}">
-        Rodada ${r}
+          ${STATE.dashFilter===v?'bg-gold border-gold text-night':'border-border text-slate-400 hover:border-gold hover:text-gold'}">
+        ${l}
       </button>`).join('')
   }
   return GROUPS.map(g => `
@@ -820,7 +838,7 @@ function buildCard(match) {
   <div class="match-card bg-card border border-border rounded-2xl overflow-hidden hover:border-slate-600">
     <div class="flex items-center justify-between px-4 pt-3 pb-2 border-b border-border">
       <div class="flex items-center gap-2">
-        <span class="text-xs font-bold px-1.5 py-0.5 rounded ${groupColor(match.group)}">GRP ${match.group}</span>
+        <span class="text-xs font-bold px-1.5 py-0.5 rounded ${groupColor(match.group)}">${match.group==='X' ? '16avos' : 'GRP '+match.group}</span>
         <span class="text-slate-500 text-xs">R${match.round}</span>
       </div>
       <div class="flex items-center gap-2">
@@ -1160,9 +1178,9 @@ async function loadRanking() {
   // Filtro por rodada
   const roundFilter = `
     <div class="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
-      ${[null,1,2,3].map(r => {
+      ${[null,1,2,3,4].map(r => {
         const active = STATE.rankRound === r
-        const label = r === null ? 'Todas rodadas' : 'Rodada ' + r
+        const label = r === null ? 'Todas rodadas' : r === 4 ? '16avos' : 'Rodada ' + r
         return `<button onclick="switchRankRound(${r})"
           class="flex-shrink-0 px-4 py-2 rounded-full text-sm font-bold border transition-all
             ${active ? 'bg-navy border-gold text-gold' : 'border-border text-slate-500 hover:border-slate-400 hover:text-slate-300'}">
@@ -1171,7 +1189,7 @@ async function loadRanking() {
     </div>`
 
   const title = STATE.currentBolao ? STATE.currentBolao.name : 'Ranking Geral'
-  const subtitle = STATE.rankRound ? `Rodada ${STATE.rankRound} · ${data?.length||0} participantes` : `${data?.length||0} participantes · atualizado em tempo real`
+  const subtitle = STATE.rankRound ? `${STATE.rankRound===4?'16avos':'Rodada '+STATE.rankRound} · ${data?.length||0} participantes` : `${data?.length||0} participantes · atualizado em tempo real`
   const icon  = STATE.currentBolao ? '🎱' : '🏆'
 
   wrap.innerHTML = `
@@ -1286,7 +1304,7 @@ async function pageMyPicks() {
           return `
           <div class="bg-card border border-border rounded-2xl px-4 py-3 opacity-50">
             <div class="flex items-center justify-between mb-2">
-              <span class="text-xs text-slate-500">Grupo ${m.group} · ${fmtFull(m.dt)}</span>
+              <span class="text-xs text-slate-500">${m.group==='X' ? '16avos de Final' : m.group ? 'Grupo '+m.group : ''} · ${fmtFull(m.dt)}</span>
               <span class="text-xs text-slate-600">sem palpite</span>
             </div>
             <div class="flex items-center gap-3">
@@ -1312,7 +1330,7 @@ async function pageMyPicks() {
         return `
         <div class="bg-card border ${border} rounded-2xl px-4 py-3">
           <div class="flex items-center justify-between mb-2">
-            <span class="text-xs text-slate-500">Grupo ${m.group} · ${fmtFull(m.dt)}</span>
+            <span class="text-xs text-slate-500">${m.group==='X' ? '16avos de Final' : m.group ? 'Grupo '+m.group : ''} · ${fmtFull(m.dt)}</span>
             ${ptsBadge}
           </div>
           <div class="flex items-center gap-3">
@@ -1341,7 +1359,7 @@ async function pageMyPicks() {
   const tabsHtml = rounds.map(r =>
     `<button data-mp-round="${r}" onclick="mpSetRound(${r})"
       class="px-4 py-1.5 rounded-full text-sm font-bold ${r===window._mpRound?'bg-gold text-navy':'text-slate-400 hover:text-white'} transition-all">
-      Rodada ${r}
+      ${r===4 ? '16avos' : 'Rodada '+r}
     </button>`
   ).join('')
 
@@ -1414,7 +1432,7 @@ async function pageAdmin() {
     return `
     <div class="bg-card border border-border rounded-2xl p-4" id="admin-card-${m.id}">
       <div class="flex items-center justify-between mb-3 text-xs">
-        <span class="text-slate-400 font-bold">Grupo ${m.group} · R${m.round}</span>
+        <span class="text-slate-400 font-bold">${m.group==='X' ? '16avos de Final' : m.group ? 'Grupo '+m.group : ''} · R${m.round}</span>
         <div class="flex items-center gap-2">
           ${hasResult ? '<span class="bg-green-900 text-green-400 px-2 py-0.5 rounded-full font-bold">✓ Salvo</span>' : ''}
           <span class="text-slate-500">${fmtFull(m.dt)}</span>
